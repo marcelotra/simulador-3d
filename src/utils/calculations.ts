@@ -1,5 +1,5 @@
-// Math for the frame simulator 
 import { useSimulatorStore } from '../store/useSimulatorStore';
+import { getSegments } from './layout';
 
 export const PIXELS_PER_CM = 10; // 1cm = 10px in 3D WebGL units
 
@@ -13,64 +13,78 @@ const COSTS = {
     printingFineArtPerSqMeter: 210.00,
     backingMdfPerSqMeter: 35.00,
     backingFoamPerSqMeter: 75.00,
-    baseLabor: 25.00
+    baseLaborPerFrame: 15.00 // Reduced per frame when multi
 };
 
 export function calculatePrice(state: ReturnType<typeof useSimulatorStore.getState>) {
-    const { width, height, passepartoutWidth, glassType, userImage, hasFrame, printType, backingType, paperMargin, quantity } = state;
+    const { 
+        width, height, passepartoutWidth, glassType, userImage, 
+        hasFrame, printType, backingType, paperMargin, quantity,
+        splitType, splitColumns, splitGap, splitHeightRatio
+    } = state;
 
-    // The "paper" size includes the image plus the paper margin
-    const paperWidth = width + (paperMargin * 2);
-    const paperHeight = height + (paperMargin * 2);
+    const segments = getSegments(width, height, splitType, splitColumns, splitGap, splitHeightRatio);
 
-    // Outer dimensions of the glass/passepartout area (if there's a frame/passepartout)
-    const totalContentWidth = paperWidth + (passepartoutWidth * 2);
-    const totalContentHeight = paperHeight + (passepartoutWidth * 2);
+    let totalFrameCost = 0;
+    let totalPassepartoutCost = 0;
+    let totalGlassCost = 0;
+    let totalPrintCost = 0;
+    let totalBackingCost = 0;
+    let totalLabor = 0;
 
-    // Costs
-    let frameCost = 0;
-    if (hasFrame) {
-        // Perimeter in meters for frame molding
-        const perimeterMeters = ((totalContentWidth * 2) + (totalContentHeight * 2)) / 100;
-        frameCost = perimeterMeters * COSTS.framePerMeter;
-    }
+    segments.forEach(seg => {
+        // The "paper" size includes the image plus the paper margin
+        const paperWidth = seg.w + (paperMargin * 2);
+        const paperHeight = seg.h + (paperMargin * 2);
 
-    // Areas in square meters
-    const totalAreaSqMeters = (totalContentWidth * totalContentHeight) / 10000;
-    const paperAreaSqMeters = (paperWidth * paperHeight) / 10000;
+        // Outer dimensions of the glass/passepartout area (if there's a frame/passepartout)
+        const totalContentWidth = paperWidth + (passepartoutWidth * 2);
+        const totalContentHeight = paperHeight + (passepartoutWidth * 2);
 
-    // Passepartout cost (only if width > 0)
-    const passepartoutCost = (hasFrame && passepartoutWidth > 0)
-        ? (totalAreaSqMeters - paperAreaSqMeters) * COSTS.passepartoutPerSqMeter
-        : 0;
+        // Costs
+        if (hasFrame) {
+            const perimeterMeters = ((totalContentWidth * 2) + (totalContentHeight * 2)) / 100;
+            totalFrameCost += perimeterMeters * COSTS.framePerMeter;
+        }
 
-    // Glass cost
-    let glassCost = 0;
-    if (hasFrame) {
-        if (glassType === 'standard') glassCost = totalAreaSqMeters * COSTS.glassStandardPerSqMeter;
-        if (glassType === 'anti-reflective') glassCost = totalAreaSqMeters * COSTS.glassAntiReflectivePerSqMeter;
-    }
+        // Areas in square meters
+        const totalAreaSqMeters = (totalContentWidth * totalContentHeight) / 10000;
+        const paperAreaSqMeters = (paperWidth * paperHeight) / 10000;
 
-    // Printing Cost
-    let printUnitPrice = COSTS.printingStandardPerSqMeter;
-    if (printType.toLowerCase().includes('fine art')) printUnitPrice = COSTS.printingFineArtPerSqMeter;
-    const printCost = userImage ? paperAreaSqMeters * printUnitPrice : 0;
+        // Passepartout cost
+        if (hasFrame && passepartoutWidth > 0) {
+            totalPassepartoutCost += (totalAreaSqMeters - paperAreaSqMeters) * COSTS.passepartoutPerSqMeter;
+        }
 
-    // Backing Cost
-    let backingUnitPrice = COSTS.backingMdfPerSqMeter;
-    if (backingType.toLowerCase().includes('foam')) backingUnitPrice = COSTS.backingFoamPerSqMeter;
-    const backingCost = totalAreaSqMeters * backingUnitPrice;
+        // Glass cost
+        if (hasFrame) {
+            if (glassType === 'standard') totalGlassCost += totalAreaSqMeters * COSTS.glassStandardPerSqMeter;
+            if (glassType === 'anti-reflective') totalGlassCost += totalAreaSqMeters * COSTS.glassAntiReflectivePerSqMeter;
+        }
 
-    const subtotal = frameCost + passepartoutCost + glassCost + printCost + backingCost + COSTS.baseLabor;
+        // Printing Cost
+        let printUnitPrice = COSTS.printingStandardPerSqMeter;
+        if (printType.toLowerCase().includes('fine art')) printUnitPrice = COSTS.printingFineArtPerSqMeter;
+        totalPrintCost += userImage ? paperAreaSqMeters * printUnitPrice : 0;
+
+        // Backing Cost
+        let backingUnitPrice = COSTS.backingMdfPerSqMeter;
+        if (backingType.toLowerCase().includes('foam')) backingUnitPrice = COSTS.backingFoamPerSqMeter;
+        totalBackingCost += totalAreaSqMeters * backingUnitPrice;
+
+        totalLabor += COSTS.baseLaborPerFrame;
+    });
+
+    const subtotal = totalFrameCost + totalPassepartoutCost + totalGlassCost + totalPrintCost + totalBackingCost + totalLabor;
     const qty = quantity ?? 1;
 
     return {
-        frameCost,
-        passepartoutCost,
-        glassCost,
-        printCost,
-        backingCost,
-        labor: COSTS.baseLabor,
+        frameCost: totalFrameCost,
+        passepartoutCost: totalPassepartoutCost,
+        glassCost: totalGlassCost,
+        printCost: totalPrintCost,
+        backingCost: totalBackingCost,
+        labor: totalLabor,
         subtotal,
         quantity: qty,
         total: subtotal * qty

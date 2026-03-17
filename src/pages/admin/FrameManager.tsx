@@ -3,31 +3,56 @@ import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useSimulatorStore, FrameData } from '../../store/useSimulatorStore';
-import { Upload, ChevronLeft, Save, Edit2, Trash2, X } from 'lucide-react';
+import { Upload, ChevronLeft, Save, Edit2, Trash2, X, PenTool } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { PathEditorModal } from '../../components/admin/PathEditorModal';
 
 const frameSchema = z.object({
     name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
     sku: z.string().min(2, 'SKU/Código é obrigatório'),
     category: z.enum(['Preta', 'Branca', 'Dourada', 'Prata', 'Madeira']),
     frameWidth: z.number().min(0.1, 'Largura deve ser maior que 0'),
+    frameDepth: z.number().min(0.1, 'A espessura (profundidade) deve ser maior que 0'),
+    rabbetWidth: z.number().min(0, 'Aba do rebaixo não pode ser negativa'),
+    rabbetDepth: z.number().min(0, 'Profundidade do rebaixo não pode ser negativa'),
+    profileType: z.enum(['reto', 'caixa', 'canaleta', 'curvo']),
+    profileSVG: z.string().optional(),
     costPrice: z.number().min(0, 'Custo não pode ser negativo'),
     salePrice: z.number().min(0, 'Valor de venda não pode ser negativo'),
 });
 
 type FrameFormValues = z.infer<typeof frameSchema>;
 
+function ProfileSilhouette({ polygon, className = "" }: { polygon: string; className?: string }) {
+    return (
+        <div 
+            className={`bg-zinc-900 shadow-inner ${className}`}
+            style={{ 
+                clipPath: polygon,
+                width: '100%',
+                height: '100%'
+            }}
+        />
+    );
+}
+
 export default function FrameManager() {
     const { availableFrames, addFrame, updateFrame, removeFrame } = useSimulatorStore();
     const [textureImage, setTextureImage] = useState<string | null>(null);
     const [galleryImage, setGalleryImage] = useState<string | null>(null);
+    const [profileSVGData, setProfileSVGData] = useState<string | null>(null);
     const [editingId, setEditingId] = useState<string | null>(null);
+    
+    // Path Editor State
+    const [isPathEditorOpen, setIsPathEditorOpen] = useState(false);
+    const [editorReferenceImage, setEditorReferenceImage] = useState<string | null>(null);
 
     const {
         register,
         handleSubmit,
         reset,
-        formState: { errors, isSubmitting }
+        formState: { errors, isSubmitting },
+        setValue
     } = useForm<FrameFormValues>({
         resolver: zodResolver(frameSchema),
         defaultValues: {
@@ -35,6 +60,11 @@ export default function FrameManager() {
             sku: '',
             category: 'Preta',
             frameWidth: 5.7,
+            frameDepth: 2.8,
+            rabbetWidth: 0.8,
+            rabbetDepth: 1.7,
+            profileType: 'caixa',
+            profileSVG: '',
             costPrice: 0,
             salePrice: 0
         }
@@ -58,6 +88,29 @@ export default function FrameManager() {
         }
     };
 
+    const handleSVGChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const result = reader.result as string;
+                // Check if it's SVG to load directly, otherwise open editor
+                if (file.type === 'image/svg+xml') {
+                    setProfileSVGData(result);
+                } else {
+                    setEditorReferenceImage(result);
+                    setIsPathEditorOpen(true);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handlePathSave = (generatedSvgPath: string) => {
+        setProfileSVGData(generatedSvgPath);
+        setValue('profileType', 'curvo');
+    };
+
     const startEditing = (frame: FrameData) => {
         setEditingId(frame.id);
         reset({
@@ -65,11 +118,16 @@ export default function FrameManager() {
             sku: frame.id,
             category: frame.category,
             frameWidth: frame.frameWidth,
+            frameDepth: frame.frameDepth,
+            rabbetWidth: frame.rabbetWidth,
+            rabbetDepth: frame.rabbetDepth,
+            profileType: frame.profileType,
             costPrice: frame.costPrice,
             salePrice: frame.salePrice
         });
         setTextureImage(frame.textureUrl);
         setGalleryImage(frame.previewUrl || null);
+        setProfileSVGData(frame.profileSVG || null);
     };
 
     const cancelEditing = () => {
@@ -79,11 +137,17 @@ export default function FrameManager() {
             sku: '',
             category: 'Preta',
             frameWidth: 5.7,
+            frameDepth: 2.8,
+            rabbetWidth: 0.8,
+            rabbetDepth: 1.7,
+            profileType: 'caixa',
+            profileSVG: '',
             costPrice: 0,
             salePrice: 0
         });
         setTextureImage(null);
         setGalleryImage(null);
+        setProfileSVGData(null);
     };
 
     const onSubmit: SubmitHandler<FrameFormValues> = (data) => {
@@ -99,6 +163,11 @@ export default function FrameManager() {
             textureUrl: textureImage,
             previewUrl: galleryImage || undefined,
             frameWidth: data.frameWidth,
+            frameDepth: data.frameDepth,
+            rabbetWidth: data.rabbetWidth,
+            rabbetDepth: data.rabbetDepth,
+            profileType: data.profileType,
+            profileSVG: profileSVGData || undefined,
             costPrice: data.costPrice,
             salePrice: data.salePrice,
         };
@@ -174,14 +243,112 @@ export default function FrameManager() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-medium text-zinc-500 mb-1 uppercase tracking-wider">Largura (cm)</label>
-                                    <input
-                                        type="number"
-                                        step="0.1"
-                                        {...register('frameWidth', { valueAsNumber: true })}
-                                        className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/5 transition-all"
-                                    />
-                                    {errors.frameWidth && <p className="text-red-500 text-[10px] mt-1">{errors.frameWidth.message}</p>}
+                                    <h4 className="text-sm font-semibold text-zinc-800 mb-3 border-b border-zinc-200 pb-2">Geometria (Perfil Técnico 3D)</h4>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <label className="block text-xs font-medium text-zinc-500 mb-1 uppercase tracking-wider">Largura Frontal (cm)</label>
+                                            <input
+                                                type="number"
+                                                step="0.1"
+                                                {...register('frameWidth', { valueAsNumber: true })}
+                                                className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/5 transition-all"
+                                                title="A largura da moldura visível de frente (ex: 5.7cm)"
+                                            />
+                                            {errors.frameWidth && <p className="text-red-500 text-[10px] mt-1">{errors.frameWidth.message}</p>}
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-zinc-500 mb-1 uppercase tracking-wider">Profundidade Física (cm)</label>
+                                            <input
+                                                type="number"
+                                                step="0.1"
+                                                {...register('frameDepth', { valueAsNumber: true })}
+                                                className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/5 transition-all"
+                                                title="A espessura total do taco de madeira encostado na parede (ex: 2.8cm)"
+                                            />
+                                            {errors.frameDepth && <p className="text-red-500 text-[10px] mt-1">{errors.frameDepth.message}</p>}
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <label className="block text-xs font-medium text-zinc-500 mb-1 uppercase tracking-wider">Rebaixo Interno: Largura (cm)</label>
+                                            <input
+                                                type="number"
+                                                step="0.1"
+                                                {...register('rabbetWidth', { valueAsNumber: true })}
+                                                className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/5 transition-all"
+                                                title="Aba de suporte interna que fica em cima do vidro/arte (ex: 0.8cm)"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-zinc-500 mb-1 uppercase tracking-wider">Rebaixo: Profundidade (cm)</label>
+                                            <input
+                                                type="number"
+                                                step="0.1"
+                                                {...register('rabbetDepth', { valueAsNumber: true })}
+                                                className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/5 transition-all"
+                                                title="Altura da cama da moldura desde o fundo até encostar no vidro (ex: 1.7cm)"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-medium text-zinc-500 mb-1 uppercase tracking-wider">Tipo do Perfil / Silhueta</label>
+                                            <select
+                                                {...register('profileType')}
+                                                className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/5 transition-all"
+                                            >
+                                                <option value="caixa">Caixa (Reta c/ degrau)</option>
+                                                <option value="reto">Plana Reta</option>
+                                                <option value="canaleta">Canaleta Flutuante</option>
+                                                <option value="curvo">Curva / Abaulada (Esculpida)</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-zinc-500 mb-1 uppercase tracking-wider flex items-center justify-between">
+                                                <span>Desenho Técnico (Foto ou SVG)</span>
+                                                {profileSVGData && (
+                                                    <button type="button" onClick={() => setIsPathEditorOpen(true)} className="text-blue-500 hover:text-blue-700 flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded transition-colors text-[9px] font-bold">
+                                                        <PenTool className="w-2.5 h-2.5" /> Editar Traçado
+                                                    </button>
+                                                )}
+                                            </label>
+                                            <div className="relative h-[48px] rounded-lg border border-zinc-200 bg-zinc-50 flex items-center overflow-hidden group hover:border-zinc-300 transition-colors cursor-pointer">
+                                                {profileSVGData ? (
+                                                    <div className="flex w-full px-2 items-center gap-3">
+                                                        <div className="w-10 h-8 flex-shrink-0 bg-white rounded border border-zinc-200 p-0.5">
+                                                            <ProfileSilhouette polygon={profileSVGData} />
+                                                        </div>
+                                                        <div className="flex-1 flex flex-col min-w-0">
+                                                            <span className="text-[10px] text-zinc-900 font-bold truncate leading-tight uppercase tracking-tight">Desenho Técnico Salvo</span>
+                                                            <span className="text-[8px] text-zinc-500 font-mono truncate">Polígono Extraído ✓</span>
+                                                        </div>
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={(e) => { e.preventDefault(); setProfileSVGData(null); }} 
+                                                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-md transition-colors mr-1"
+                                                            title="Remover Desenho SVG"
+                                                        >
+                                                            <X className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center">
+                                                        <Upload className="w-3 h-3 text-zinc-400 mr-2" />
+                                                        <span className="text-[10px] text-zinc-500 font-medium">Enviar Foto da Planta (JPG/PNG)</span>
+                                                    </div>
+                                                )}
+                                                <input 
+                                                    type="file" 
+                                                    accept=".svg, image/svg+xml, image/png, image/jpeg, image/jpg" 
+                                                    onChange={handleSVGChange} 
+                                                    className="absolute inset-0 opacity-0 cursor-pointer" 
+                                                    title="Envie a foto do corte transversal ou desenho técnico" 
+                                                />
+                                            </div>
+                                            <p className="text-[9px] text-zinc-500 mt-1 leading-tight">Envie sua foto da planta. O sistema abrirá uma ferramenta mágica de clique-a-clique.</p>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
@@ -294,10 +461,18 @@ export default function FrameManager() {
                                             <tr key={frame.id} className="group hover:bg-zinc-50 transition-colors">
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center">
-                                                        <div className="w-10 h-10 rounded border border-zinc-200 overflow-hidden bg-zinc-100 mr-3 flex-shrink-0">
+                                                        <div className="relative w-10 h-10 rounded border border-zinc-200 overflow-hidden bg-zinc-100 mr-3 flex-shrink-0">
                                                             <img src={frame.textureUrl} className="w-full h-full object-cover" alt={frame.name} />
+                                                            {frame.profileSVG && (
+                                                                <div className="absolute top-0 right-0 w-4 h-4 bg-white/90 border-l border-b border-zinc-200 p-0.5" title="Possui Perfil Curvo">
+                                                                    <ProfileSilhouette polygon={frame.profileSVG} />
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                        <span className="text-sm font-medium text-zinc-900 leading-tight">{frame.name}</span>
+                                                        <div className="flex flex-col">
+                                                            <span className="text-sm font-medium text-zinc-900 leading-tight">{frame.name}</span>
+                                                            <span className="text-[10px] text-zinc-400 capitalize">{frame.profileType}</span>
+                                                        </div>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
@@ -342,6 +517,12 @@ export default function FrameManager() {
                     </div>
                 </div>
             </div>
+            <PathEditorModal
+                isOpen={isPathEditorOpen}
+                onClose={() => setIsPathEditorOpen(false)}
+                onSave={handlePathSave}
+                initialReferenceImage={editorReferenceImage || undefined}
+            />
         </div>
     );
 }

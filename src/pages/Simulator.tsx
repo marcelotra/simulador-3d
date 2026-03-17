@@ -5,7 +5,7 @@ export function Simulator() {
     return (
         <div className="w-full min-h-screen flex lg:h-screen relative bg-zinc-100 font-sans">
             {/* 3D Canvas Area — adapts to available space */}
-            <div className="flex-1 min-h-[50vh] lg:h-full relative">
+            <div className="flex-1 min-w-0 overflow-hidden min-h-[50vh] lg:h-full relative">
                 <Scene />
             </div>
 

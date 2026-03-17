@@ -7,6 +7,11 @@ export interface FrameData {
     textureUrl: string; // Used for simulation
     previewUrl?: string; // Used for gallery display (optional)
     frameWidth: number; // width in cm
+    frameDepth: number; // thickness in cm
+    rabbetWidth: number; // internal lip over art
+    rabbetDepth: number; // depth down to art
+    profileType: 'reto' | 'caixa' | 'canaleta' | 'curvo';
+    profileSVG?: string; // Optional path data for clip-path
     costPrice: number;
     salePrice: number;
 }
@@ -38,6 +43,10 @@ export interface CartItem {
     price: number;
 }
 
+export type SplitType = 'single' | 'asymmetric' | 'vertical' | 'horizontal' | 'grid';
+
+export type CameraAngle = 'center' | 'left' | 'right' | 'top-left' | 'bottom-right';
+
 interface FrameState {
     // Available Data
     availableFrames: FrameData[];
@@ -58,6 +67,16 @@ interface FrameState {
     userImage: string | null;
     originalImage: string | null;
     imagePixels: { width: number; height: number } | null;
+
+    // View Configuration
+    cameraAngle: CameraAngle;
+
+    // Split Configuration
+    splitType: SplitType;
+    splitColumns: number;
+    splitRows: number;
+    splitGap: number; // in cm
+    splitHeightRatio: number; // 0.8 or 0.9 for asymmetric
 
     // Cart
     cart: CartItem[];
@@ -83,6 +102,14 @@ interface FrameState {
     setUserImage: (url: string | null) => void;
     setOriginalImage: (url: string | null) => void;
     setImagePixels: (pixels: { width: number; height: number } | null) => void;
+    setCameraAngle: (angle: CameraAngle) => void;
+
+    // Split Actions
+    setSplitType: (type: SplitType) => void;
+    setSplitColumns: (cols: number) => void;
+    setSplitRows: (rows: number) => void;
+    setSplitGap: (gap: number) => void;
+    setSplitHeightRatio: (ratio: number) => void;
 
     // Cart Actions
     addToCart: (price: number) => void;
@@ -99,6 +126,12 @@ const defaultInitialFrames: FrameData[] = [
         textureUrl: '/texture_frame.png',
         previewUrl: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=200&h=200&fit=crop',
         frameWidth: 5.7,
+        frameDepth: 2.8,
+        rabbetWidth: 0.8,
+        rabbetDepth: 1.7,
+        profileType: 'curvo',
+        // Um SVG D (caminho) aproximado da curva clássica "pescoço de cisne" (100x100 coord normalizadas pra CSS CSS clip-path longo)
+        profileSVG: 'M0,100 L0,50 Q15,45 20,30 Q40,10 60,0 L80,5 Q85,15 90,15 L100,15 L100,100 Z', 
         costPrice: 45.00,
         salePrice: 120.00
     },
@@ -108,6 +141,10 @@ const defaultInitialFrames: FrameData[] = [
         category: 'Preta',
         textureUrl: 'https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?w=200&h=200&fit=crop',
         frameWidth: 1.5,
+        frameDepth: 3.0,
+        rabbetWidth: 0.5,
+        rabbetDepth: 2.5,
+        profileType: 'caixa',
         costPrice: 20.00,
         salePrice: 65.00
     },
@@ -117,6 +154,10 @@ const defaultInitialFrames: FrameData[] = [
         category: 'Branca',
         textureUrl: 'https://images.unsplash.com/photo-1544207617-073bb33ad072?w=200&h=200&fit=crop',
         frameWidth: 3.0,
+        frameDepth: 1.5,
+        rabbetWidth: 0.6,
+        rabbetDepth: 1.0,
+        profileType: 'reto',
         costPrice: 25.00,
         salePrice: 85.00
     },
@@ -126,6 +167,10 @@ const defaultInitialFrames: FrameData[] = [
         category: 'Madeira',
         textureUrl: 'https://images.unsplash.com/photo-1587350859728-1176c2bc051c?w=200&h=200&fit=crop',
         frameWidth: 2.0,
+        frameDepth: 2.0,
+        rabbetWidth: 0.6,
+        rabbetDepth: 1.5,
+        profileType: 'caixa',
         costPrice: 35.00,
         salePrice: 110.00
     }
@@ -182,7 +227,7 @@ const INITIAL_STATE = {
     height: 60,
     quantity: 1,
     frameProfileId: '149',
-    passepartoutWidth: 5,
+    passepartoutWidth: 0,
     passepartoutColor: '#ffffff',
     glassType: 'standard' as const,
     hasFrame: false,
@@ -192,6 +237,12 @@ const INITIAL_STATE = {
     userImage: null,
     originalImage: null,
     imagePixels: null,
+    splitType: 'single' as SplitType,
+    splitColumns: 3,
+    splitRows: 1,
+    splitGap: 2,
+    splitHeightRatio: 0.8,
+    cameraAngle: 'center' as CameraAngle,
 };
 
 export const useSimulatorStore = create<FrameState>((set) => ({
@@ -244,6 +295,13 @@ export const useSimulatorStore = create<FrameState>((set) => ({
     setUserImage: (url) => set({ userImage: url }),
     setOriginalImage: (url) => set({ originalImage: url }),
     setImagePixels: (pixels) => set({ imagePixels: pixels }),
+    setCameraAngle: (angle) => set({ cameraAngle: angle }),
+
+    setSplitType: (type) => set({ splitType: type }),
+    setSplitColumns: (cols) => set({ splitColumns: cols }),
+    setSplitRows: (rows) => set({ splitRows: rows }),
+    setSplitGap: (gap) => set({ splitGap: gap }),
+    setSplitHeightRatio: (ratio) => set({ splitHeightRatio: ratio }),
 
     addToCart: (price: number) => set((state) => {
         const newItem: CartItem = {

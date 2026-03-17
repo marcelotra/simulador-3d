@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { Frame2D } from '../2d/Frame2D';
 import { OnboardingHint } from '../ui/OnboardingHint';
+import { CameraControls } from './CameraControls';
 
 export function Scene() {
     return (
@@ -12,6 +13,9 @@ export function Scene() {
             }>
                 <Frame2D />
             </Suspense>
+
+            {/* Camera Controls */}
+            <CameraControls />
 
             {/* Onboarding hint overlay */}
             <OnboardingHint />
