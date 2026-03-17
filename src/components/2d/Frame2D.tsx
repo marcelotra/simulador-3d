@@ -16,6 +16,7 @@ export function Frame2D() {
     const currentFrame = availableFrames.find(f => f.id === frameProfileId) || availableFrames[0];
     const fw = hasFrame ? (currentFrame ? currentFrame.frameWidth : 5.7) : 0;
     const fd = hasFrame ? (currentFrame?.frameDepth || fw * 1.5) : 0; // Profundidade física (parede externa)
+    const rabbetDepth = hasFrame ? (currentFrame?.rabbetDepth || fd * 0.4) : 0; // Degrau interno até o vidro
     const profileType = currentFrame?.profileType || 'caixa';
     const profileSVG = currentFrame?.profileSVG || '';
 
@@ -25,10 +26,12 @@ export function Frame2D() {
 
     // Helper para extrair pontos do polígono CSS
     const parseProfilePoints = (poly: string) => {
-        const pts = poly.match(/[\d.]+% [\d.]+%/g);
+        // Suporta "polygon(x% y%, ...)" ou apenas lista de pontos
+        const pts = poly.match(/[\d.]+%[\s,]+[\d.]+%/g);
         if (!pts) return [];
         return pts.map(p => {
-            const [x, y] = p.split(' ').map(v => parseFloat(v));
+            const clean = p.replace(/%/g, '').replace(/,/g, ' ').trim();
+            const [x, y] = clean.split(/\s+/).map(v => parseFloat(v));
             return { x, y };
         });
     };
@@ -67,6 +70,10 @@ export function Frame2D() {
             canvas.width = cropWidth; canvas.height = rawHeight;
             const ctx = canvas.getContext('2d');
             if (ctx) {
+                if (currentFrame.invertTexture) {
+                    ctx.translate(0, rawHeight);
+                    ctx.scale(1, -1);
+                }
                 ctx.drawImage(img, leftMost, topMost, cropWidth, rawHeight, 0, 0, cropWidth, rawHeight);
                 setTextureUrl(canvas.toDataURL('image/png'));
             }
@@ -380,7 +387,7 @@ export function Frame2D() {
                                     backgroundColor: (passepartoutWidth > 0 && hasFrame) ? passepartoutColor : 'transparent',
                                     padding: `${(hasFrame ? passepartoutWidth : 0) * s}px`,
                                     boxShadow: hasFrame ? 'inset 0px 4px 20px rgba(0,0,0,0.6)' : 'none',
-                                    transform: `translateZ(0)`,
+                                    transform: `translateZ(-${rabbetDepth * s}px)`,
                                 }}
                             >
                                 <div

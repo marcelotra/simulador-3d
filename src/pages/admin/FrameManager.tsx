@@ -17,6 +17,7 @@ const frameSchema = z.object({
     rabbetDepth: z.number().min(0, 'Profundidade do rebaixo não pode ser negativa'),
     profileType: z.enum(['reto', 'caixa', 'canaleta', 'curvo']),
     profileSVG: z.string().optional(),
+    invertTexture: z.boolean().optional(),
     costPrice: z.number().min(0, 'Custo não pode ser negativo'),
     salePrice: z.number().min(0, 'Valor de venda não pode ser negativo'),
 });
@@ -65,6 +66,7 @@ export default function FrameManager() {
             rabbetDepth: 1.7,
             profileType: 'caixa',
             profileSVG: '',
+            invertTexture: false,
             costPrice: 0,
             salePrice: 0
         }
@@ -122,6 +124,7 @@ export default function FrameManager() {
             rabbetWidth: frame.rabbetWidth,
             rabbetDepth: frame.rabbetDepth,
             profileType: frame.profileType,
+            invertTexture: frame.invertTexture || false,
             costPrice: frame.costPrice,
             salePrice: frame.salePrice
         });
@@ -142,6 +145,7 @@ export default function FrameManager() {
             rabbetDepth: 1.7,
             profileType: 'caixa',
             profileSVG: '',
+            invertTexture: false,
             costPrice: 0,
             salePrice: 0
         });
@@ -168,6 +172,7 @@ export default function FrameManager() {
             rabbetDepth: data.rabbetDepth,
             profileType: data.profileType,
             profileSVG: profileSVGData || undefined,
+            invertTexture: data.invertTexture,
             costPrice: data.costPrice,
             salePrice: data.salePrice,
         };
@@ -304,6 +309,19 @@ export default function FrameManager() {
                                                 <option value="curvo">Curva / Abaulada (Esculpida)</option>
                                             </select>
                                         </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-zinc-500 mb-1 uppercase tracking-wider">Inverter Lados da Textura</label>
+                                            <div className="flex items-center h-[38px] px-4 bg-zinc-50 border border-zinc-200 rounded-lg">
+                                                <input
+                                                    type="checkbox"
+                                                    {...register('invertTexture')}
+                                                    className="w-4 h-4 text-zinc-900 rounded border-zinc-300 focus:ring-zinc-900"
+                                                />
+                                                <span className="ml-2 text-sm text-zinc-700">Inverter (Interior vira Exterior)</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-4 mb-4">
                                         <div>
                                             <label className="block text-xs font-medium text-zinc-500 mb-1 uppercase tracking-wider flex items-center justify-between">
                                                 <span>Desenho Técnico (Foto ou SVG)</span>

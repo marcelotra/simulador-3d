@@ -12,6 +12,7 @@ export interface FrameData {
     rabbetDepth: number; // depth down to art
     profileType: 'reto' | 'caixa' | 'canaleta' | 'curvo';
     profileSVG?: string; // Optional path data for clip-path
+    invertTexture?: boolean; // Inverter interno/externo da textura
     costPrice: number;
     salePrice: number;
 }
@@ -126,12 +127,13 @@ const defaultInitialFrames: FrameData[] = [
         textureUrl: '/texture_frame.png',
         previewUrl: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=200&h=200&fit=crop',
         frameWidth: 5.7,
-        frameDepth: 2.8,
+        frameDepth: 3.8,
         rabbetWidth: 0.8,
-        rabbetDepth: 1.7,
+        rabbetDepth: 1.2,
         profileType: 'curvo',
-        // Um SVG D (caminho) aproximado da curva clássica "pescoço de cisne" (100x100 coord normalizadas pra CSS CSS clip-path longo)
-        profileSVG: 'M0,100 L0,50 Q15,45 20,30 Q40,10 60,0 L80,5 Q85,15 90,15 L100,15 L100,100 Z', 
+        // Representação fiel do desenho técnico (57x38mm) em formato polygon
+        profileSVG: 'polygon(0% 100%, 0% 40%, 15% 35%, 25% 15%, 45% 5%, 65% 0%, 80% 5%, 85% 15%, 85% 35%, 100% 35%, 100% 100%)', 
+        invertTexture: true,
         costPrice: 45.00,
         salePrice: 120.00
     },
