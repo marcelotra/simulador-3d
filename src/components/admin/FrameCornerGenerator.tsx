@@ -34,8 +34,8 @@ export const FrameCornerGenerator = forwardRef<FrameCornerGeneratorRef, FrameCor
 
     const fw = frameWidth;
     const fd = frameDepth;
-    const s = 15; // Escala (1cm = 15px para ficar com boa resolução)
-    const legLength = 25; // O tamanho das "pernas" do L em cm
+    const s = 25; // Aumentado para 25px para fotos bem maiores e detalhadas
+    const legLength = 18; // 18cm de perna da moldura renderizada (maior proporção e realismo)
 
     // Processa a textura se precisar inverter
     useEffect(() => {
@@ -103,15 +103,25 @@ export const FrameCornerGenerator = forwardRef<FrameCornerGeneratorRef, FrameCor
     if (!processedTexture) return null;
 
     const ProfileSticks = ({ 
-        length, direction, rotation, tx, ty 
+        length, direction, rotation, tx, ty, miterEnd = 'both'
     }: { 
         length: number, 
         direction: string,
         rotation: number,
         tx: number,
-        ty: number
+        ty: number,
+        miterEnd?: 'left' | 'right' | 'both'
     }) => {
         const points = profileType === 'curvo' && profileSVG ? parseProfilePoints(profileSVG) : [];
+        
+        const getClipPath = (offset: number, sliceWidth: number) => {
+            const lt = miterEnd === 'left' || miterEnd === 'both' ? `${offset * s}px` : '0px';
+            const lb = miterEnd === 'left' || miterEnd === 'both' ? `${(offset + sliceWidth) * s}px` : '0px';
+            const rt = miterEnd === 'right' || miterEnd === 'both' ? `calc(100% - ${offset * s}px)` : '100%';
+            const rb = miterEnd === 'right' || miterEnd === 'both' ? `calc(100% - ${(offset + sliceWidth) * s}px)` : '100%';
+            return `polygon(${lt} 0px, ${rt} 0px, ${rb} 100%, ${lb} 100%)`;
+        };
+
         if (points.length < 2) {
             return (
                 <div style={{
@@ -123,7 +133,7 @@ export const FrameCornerGenerator = forwardRef<FrameCornerGeneratorRef, FrameCor
                     top: 0, left: 0,
                     transformOrigin: '0 0',
                     transform: `translate(${tx * s}px, ${ty * s}px) rotate(${rotation}deg)`,
-                    clipPath: `polygon(0 0, 100% 0, calc(100% - ${fw * s}px) 100%, ${fw * s}px 100%)`,
+                    clipPath: getClipPath(0, fw),
                 }} />
             );
         }
@@ -152,7 +162,7 @@ export const FrameCornerGenerator = forwardRef<FrameCornerGeneratorRef, FrameCor
                     height: `${fw * s}px`,
                     backgroundColor: woodColor,
                     transform: `translateZ(-${fd * s}px)`,
-                    clipPath: `polygon(0 0, 100% 0, calc(100% - ${fw * s}px) 100%, ${fw * s}px 100%)`,
+                    clipPath: getClipPath(0, fw),
                 }} />
 
                 {optimized.map((p, i) => {
@@ -176,13 +186,8 @@ export const FrameCornerGenerator = forwardRef<FrameCornerGeneratorRef, FrameCor
                             backgroundPosition: `0 -${offsetFront * s}px`,
                             transform: `translateZ(-${sliceZ * s}px)`,
                             transformStyle: 'preserve-3d',
-                            clipPath: `polygon(
-                                ${offsetFront * s}px 0, 
-                                ${fullWidth - offsetFront * s}px 0, 
-                                ${fullWidth - (offsetFront + sliceW) * s}px 100%, 
-                                ${(offsetFront + sliceW) * s}px 100%
-                            )`,
-                            filter: `brightness(${1 - (pNext.y / 800)})`, 
+                            clipPath: getClipPath(offsetFront, sliceW),
+                            filter: `brightness(${1 - (pNext.y / 400)})`, 
                         }} />
                     );
                 })}
@@ -205,13 +210,13 @@ export const FrameCornerGenerator = forwardRef<FrameCornerGeneratorRef, FrameCor
             <div 
                 ref={containerRef} 
                 style={{ 
-                    width: '600px', 
-                    height: '600px', 
+                    width: '800px', 
+                    height: '800px', 
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'center',
                     backgroundColor: 'transparent',
-                    perspective: '2000px' 
+                    perspective: '2500px' 
                 }}
             >
                 <div
@@ -219,8 +224,8 @@ export const FrameCornerGenerator = forwardRef<FrameCornerGeneratorRef, FrameCor
                         position: 'relative',
                         width: `${legLength * s}px`,
                         height: `${legLength * s}px`,
-                        // Ângulo fotográfico estilo "quina" (V apontando para baixo)
-                        transform: 'rotateX(55deg) rotateZ(-135deg)',
+                        // Ângulo fotográfico realista estilo "quina" (V apontando para baixo)
+                        transform: 'rotateX(60deg) rotateZ(-135deg)',
                         transformStyle: 'preserve-3d',
                     }}
                 >
@@ -230,16 +235,16 @@ export const FrameCornerGenerator = forwardRef<FrameCornerGeneratorRef, FrameCor
                         top: 0, left: 0,
                         width: `${legLength * s}px`, height: `${fw * s}px`,
                         backgroundColor: 'black',
-                        transform: `translateZ(-${fd * s}px)`,
-                        filter: 'blur(20px)', opacity: 0.4,
+                        transform: `translateZ(-${fd * s + 8}px)`,
+                        filter: 'blur(25px)', opacity: 0.5,
                     }} />
                     <div style={{
                         position: 'absolute',
                         top: 0, left: 0,
                         width: `${fw * s}px`, height: `${legLength * s}px`,
                         backgroundColor: 'black',
-                        transform: `translateZ(-${fd * s}px)`,
-                        filter: 'blur(20px)', opacity: 0.4,
+                        transform: `translateZ(-${fd * s + 8}px)`,
+                        filter: 'blur(25px)', opacity: 0.5,
                     }} />
                     
                     {/* CORPO DA QUINA EM 3D */}
@@ -259,10 +264,32 @@ export const FrameCornerGenerator = forwardRef<FrameCornerGeneratorRef, FrameCor
                     }} />
 
                     {/* Frentes (extrusões) */}
-                    <ProfileSticks length={legLength} direction="to bottom" rotation={0} tx={0} ty={0} />
-                    <ProfileSticks length={legLength} direction="to bottom" rotation={270} tx={0} ty={legLength} />
+                    <ProfileSticks length={legLength} direction="to bottom" rotation={0} tx={0} ty={0} miterEnd="left" />
+                    <ProfileSticks length={legLength} direction="to bottom" rotation={270} tx={0} ty={legLength} miterEnd="right" />
                     
-                    {/* Os pedaços cortados (a mitra e pontas secas) não precisam ser super detalhados para o PNG se a câmera não ver de baixo, mas uma tampa simples ajuda */}
+                    {/* Tampas que fecham as pontas nas extremidades da moldura */}
+                    {/* Cap Arm A (Right end) */}
+                    <div style={{
+                        position: 'absolute',
+                        left: `${legLength * s}px`,
+                        top: 0,
+                        width: `${fd * s}px`,
+                        height: `${fw * s}px`,
+                        backgroundColor: '#8a7144', // Cor genérica de madeira para a seção cortada
+                        transformOrigin: 'left',
+                        transform: 'rotateY(90deg)', 
+                    }} />
+                    {/* Cap Arm B (Bottom end) */}
+                    <div style={{
+                        position: 'absolute',
+                        left: 0,
+                        top: `${legLength * s}px`,
+                        width: `${fw * s}px`,
+                        height: `${fd * s}px`,
+                        backgroundColor: '#8a7144',
+                        transformOrigin: 'top',
+                        transform: 'rotateX(-90deg)',
+                    }} />
                 </div>
             </div>
         </div>
