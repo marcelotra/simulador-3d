@@ -219,8 +219,8 @@ export const FrameCornerGenerator = forwardRef<FrameCornerGeneratorRef, FrameCor
                         position: 'relative',
                         width: `${legLength * s}px`,
                         height: `${legLength * s}px`,
-                        // Ângulo fotográfico estilo "quina explodida"
-                        transform: 'rotateX(55deg) rotateZ(45deg)',
+                        // Ângulo fotográfico estilo "quina" (V apontando para baixo)
+                        transform: 'rotateX(55deg) rotateZ(-135deg)',
                         transformStyle: 'preserve-3d',
                     }}
                 >
@@ -260,7 +260,7 @@ export const FrameCornerGenerator = forwardRef<FrameCornerGeneratorRef, FrameCor
 
                     {/* Frentes (extrusões) */}
                     <ProfileSticks length={legLength} direction="to bottom" rotation={0} tx={0} ty={0} />
-                    <ProfileSticks length={legLength} direction="to right" rotation={90} tx={0} ty={0} />
+                    <ProfileSticks length={legLength} direction="to bottom" rotation={270} tx={0} ty={legLength} />
                     
                     {/* Os pedaços cortados (a mitra e pontas secas) não precisam ser super detalhados para o PNG se a câmera não ver de baixo, mas uma tampa simples ajuda */}
                 </div>
