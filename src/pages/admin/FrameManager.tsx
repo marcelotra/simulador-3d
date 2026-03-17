@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -6,6 +6,7 @@ import { useSimulatorStore, FrameData } from '../../store/useSimulatorStore';
 import { Upload, ChevronLeft, Save, Edit2, Trash2, X, PenTool } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PathEditorModal } from '../../components/admin/PathEditorModal';
+import { FrameCornerGenerator, FrameCornerGeneratorRef } from '../../components/admin/FrameCornerGenerator';
 
 const frameSchema = z.object({
     name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
@@ -52,6 +53,7 @@ export default function FrameManager() {
         register,
         handleSubmit,
         reset,
+        watch,
         formState: { errors, isSubmitting },
         setValue
     } = useForm<FrameFormValues>({
@@ -186,6 +188,43 @@ export default function FrameManager() {
         }
 
         cancelEditing();
+    };
+
+    const generatorRef = useRef<FrameCornerGeneratorRef>(null);
+    const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+
+    const handleGeneratePreview = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (!textureImage) {
+            alert("Faça o upload da Textura Principal primeiro para gerar a foto 3D.");
+            return;
+        }
+
+        if (generatorRef.current) {
+            try {
+                setIsGeneratingImage(true);
+                // Pequeno delay pra garantir que texturas carregaram
+                await new Promise(r => setTimeout(r, 200)); 
+                const dataUrl = await generatorRef.current.generateImage();
+                if (dataUrl) {
+                    setGalleryImage(dataUrl);
+                } else {
+                    alert("Não foi possível capturar a imagem do 3D.");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Erro ao tentar gerar foto.");
+            } finally {
+                setIsGeneratingImage(false);
+            }
+        }
+    };
+
+    // Derived values for the generator
+    const curValues = {
+        ...watch(),
+        textureUrl: textureImage,
+        profileSVG: profileSVGData
     };
 
     return (
@@ -412,21 +451,26 @@ export default function FrameManager() {
                                     </div>
                                     <div>
                                         <label className="block text-xs font-medium text-zinc-500 mb-2 uppercase tracking-wider">Galeria (Menu)</label>
-                                        <div className="relative aspect-square rounded-lg border-2 border-dashed border-zinc-200 bg-zinc-50 flex flex-col items-center justify-center overflow-hidden group hover:border-zinc-300 transition-colors">
+                                        <label className="relative block aspect-square rounded-lg border-2 border-dashed border-zinc-200 bg-zinc-50 flex flex-col items-center justify-center overflow-hidden group hover:border-zinc-300 transition-colors cursor-pointer">
                                             {galleryImage ? (
-                                                <>
-                                                    <img src={galleryImage} className="w-full h-full object-cover" alt="Gallery Preview" />
-                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                        <p className="text-white text-[10px] font-medium">Trocar</p>
-                                                    </div>
-                                                </>
+                                                <img src={galleryImage} className="w-full h-full object-cover" alt="Gallery Preview" />
                                             ) : (
-                                                <>
-                                                    <Upload className="w-5 h-5 text-zinc-400 mb-1" />
-                                                    <p className="text-[9px] text-zinc-500 font-medium text-center px-2 leading-tight">Envie a foto final</p>
-                                                </>
+                                                <div className="flex flex-col items-center justify-center text-zinc-400">
+                                                    <Upload className="w-5 h-5 mb-1" />
+                                                    <span className="text-[10px] font-medium px-2 text-center">Envie foto ou gere em 3D</span>
+                                                </div>
                                             )}
                                             <input type="file" accept="image/*" onChange={handleGalleryChange} className="absolute inset-0 opacity-0 cursor-pointer" title="Foto para o menu de escolha" />
+                                        </label>
+                                        <div className="mt-2">
+                                            <button 
+                                                type="button"
+                                                onClick={handleGeneratePreview}
+                                                disabled={isGeneratingImage || !textureImage}
+                                                className="w-full px-3 py-1.5 bg-zinc-900 text-white rounded-lg text-xs font-semibold hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                                            >
+                                                {isGeneratingImage ? "Gerando..." : "Gerar Foto 3D"}
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -452,6 +496,20 @@ export default function FrameManager() {
                                     </button>
                                 </div>
                             </form>
+                            
+                            {/* Generator isolado, mas recebe as props atuais do form react-hook-form */}
+                            {(curValues.textureUrl && curValues.frameWidth && curValues.frameDepth) ? (
+                                <FrameCornerGenerator 
+                                    ref={generatorRef}
+                                    frameWidth={curValues.frameWidth}
+                                    frameDepth={curValues.frameDepth}
+                                    rabbetDepth={curValues.rabbetDepth}
+                                    profileType={curValues.profileType}
+                                    profileSVG={curValues.profileSVG || undefined}
+                                    textureUrl={curValues.textureUrl}
+                                    invertTexture={curValues.invertTexture}
+                                />
+                            ) : null}
                         </div>
                     </div>
 
