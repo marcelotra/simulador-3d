@@ -273,7 +273,7 @@ export const FrameElbowGenerator = forwardRef<FrameElbowGeneratorRef, FrameElbow
                         height: `${fw * s}px`,
                         backgroundColor: woodColor, 
                         // Aplicando o clip path na tampa lateral, precisa estar orientado corretamente
-                        clipPath: profileType === 'curvo' && profileSVG ? profileSVG.replace(/(\d+)%/g, (v, num) => {
+                        clipPath: profileType === 'curvo' && profileSVG ? profileSVG.replace(/(\d+)%/g, (_, num) => {
                            // Invertendo X e Y no clip-path dependendo do eixo da "face"
                            return `${num}%`; 
                         }) : undefined,
