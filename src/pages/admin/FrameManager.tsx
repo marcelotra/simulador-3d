@@ -7,6 +7,7 @@ import { Upload, ChevronLeft, Save, Edit2, Trash2, X, PenTool } from 'lucide-rea
 import { Link } from 'react-router-dom';
 import { PathEditorModal } from '../../components/admin/PathEditorModal';
 import { FrameCornerGenerator, FrameCornerGeneratorRef } from '../../components/admin/FrameCornerGenerator';
+import { FrameElbowGenerator, FrameElbowGeneratorRef } from '../../components/admin/FrameElbowGenerator';
 
 const frameSchema = z.object({
     name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
@@ -42,6 +43,7 @@ export default function FrameManager() {
     const { availableFrames, addFrame, updateFrame, removeFrame } = useSimulatorStore();
     const [textureImage, setTextureImage] = useState<string | null>(null);
     const [galleryImage, setGalleryImage] = useState<string | null>(null);
+    const [elbowImage, setElbowImage] = useState<string | null>(null);
     const [profileSVGData, setProfileSVGData] = useState<string | null>(null);
     const [editingId, setEditingId] = useState<string | null>(null);
     
@@ -92,6 +94,15 @@ export default function FrameManager() {
         }
     };
 
+    const handleElbowChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => setElbowImage(reader.result as string);
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleSVGChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -132,6 +143,7 @@ export default function FrameManager() {
         });
         setTextureImage(frame.textureUrl);
         setGalleryImage(frame.previewUrl || null);
+        setElbowImage(frame.elbowUrl || null);
         setProfileSVGData(frame.profileSVG || null);
     };
 
@@ -153,6 +165,7 @@ export default function FrameManager() {
         });
         setTextureImage(null);
         setGalleryImage(null);
+        setElbowImage(null);
         setProfileSVGData(null);
     };
 
@@ -168,6 +181,7 @@ export default function FrameManager() {
             category: data.category as any,
             textureUrl: textureImage,
             previewUrl: galleryImage || undefined,
+            elbowUrl: elbowImage || undefined,
             frameWidth: data.frameWidth,
             frameDepth: data.frameDepth,
             rabbetWidth: data.rabbetWidth,
@@ -191,7 +205,9 @@ export default function FrameManager() {
     };
 
     const generatorRef = useRef<FrameCornerGeneratorRef>(null);
+    const elbowGeneratorRef = useRef<FrameElbowGeneratorRef>(null);
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+    const [isGeneratingElbow, setIsGeneratingElbow] = useState(false);
 
     const handleGeneratePreview = async (e: React.MouseEvent) => {
         e.preventDefault();
@@ -216,6 +232,32 @@ export default function FrameManager() {
                 alert("Erro ao tentar gerar foto.");
             } finally {
                 setIsGeneratingImage(false);
+            }
+        }
+    };
+
+    const handleGenerateElbow = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (!textureImage) {
+            alert("Faça o upload da Textura Principal primeiro para gerar a foto 3D.");
+            return;
+        }
+
+        if (elbowGeneratorRef.current) {
+            try {
+                setIsGeneratingElbow(true);
+                await new Promise(r => setTimeout(r, 200)); 
+                const dataUrl = await elbowGeneratorRef.current.generateImage();
+                if (dataUrl) {
+                    setElbowImage(dataUrl);
+                } else {
+                    alert("Não foi possível capturar a imagem do Cotovelo.");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Erro ao tentar gerar foto do cotovelo.");
+            } finally {
+                setIsGeneratingElbow(false);
             }
         }
     };
@@ -429,7 +471,7 @@ export default function FrameManager() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div>
                                         <label className="block text-xs font-medium text-zinc-500 mb-2 uppercase tracking-wider">Textura (Simulador)</label>
                                         <div className="relative aspect-square rounded-lg border-2 border-dashed border-zinc-200 bg-zinc-50 flex flex-col items-center justify-center overflow-hidden group hover:border-zinc-300 transition-colors">
@@ -473,6 +515,30 @@ export default function FrameManager() {
                                             </button>
                                         </div>
                                     </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-zinc-500 mb-2 uppercase tracking-wider">Cotovelo (Perfil 3D)</label>
+                                        <label className="relative block aspect-square rounded-lg border-2 border-dashed border-zinc-200 bg-zinc-50 flex flex-col items-center justify-center overflow-hidden group hover:border-zinc-300 transition-colors cursor-pointer">
+                                            {elbowImage ? (
+                                                <img src={elbowImage} className="w-full h-full object-cover" alt="Elbow Preview" />
+                                            ) : (
+                                                <div className="flex flex-col items-center justify-center text-zinc-400">
+                                                    <Upload className="w-5 h-5 mb-1" />
+                                                    <span className="text-[10px] font-medium px-2 text-center">Envie foto ou gere em 3D</span>
+                                                </div>
+                                            )}
+                                            <input type="file" accept="image/*" onChange={handleElbowChange} className="absolute inset-0 opacity-0 cursor-pointer" title="Foto do cotovelo para o perfil técnico" />
+                                        </label>
+                                        <div className="mt-2">
+                                            <button 
+                                                type="button"
+                                                onClick={handleGenerateElbow}
+                                                disabled={isGeneratingElbow || !textureImage}
+                                                className="w-full px-3 py-1.5 bg-zinc-900 text-white rounded-lg text-xs font-semibold hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                                            >
+                                                {isGeneratingElbow ? "Gerando..." : "Gerar Cotovelo 3D"}
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div className="flex gap-3">
@@ -499,16 +565,28 @@ export default function FrameManager() {
                             
                             {/* Generator isolado, mas recebe as props atuais do form react-hook-form */}
                             {(curValues.textureUrl && curValues.frameWidth && curValues.frameDepth) ? (
-                                <FrameCornerGenerator 
-                                    ref={generatorRef}
-                                    frameWidth={curValues.frameWidth}
-                                    frameDepth={curValues.frameDepth}
-                                    rabbetDepth={curValues.rabbetDepth}
-                                    profileType={curValues.profileType}
-                                    profileSVG={curValues.profileSVG || undefined}
-                                    textureUrl={curValues.textureUrl}
-                                    invertTexture={curValues.invertTexture}
-                                />
+                                <>
+                                    <FrameCornerGenerator 
+                                        ref={generatorRef}
+                                        frameWidth={curValues.frameWidth}
+                                        frameDepth={curValues.frameDepth}
+                                        rabbetDepth={curValues.rabbetDepth}
+                                        profileType={curValues.profileType}
+                                        profileSVG={curValues.profileSVG || undefined}
+                                        textureUrl={curValues.textureUrl}
+                                        invertTexture={curValues.invertTexture}
+                                    />
+                                    <FrameElbowGenerator 
+                                        ref={elbowGeneratorRef}
+                                        frameWidth={curValues.frameWidth}
+                                        frameDepth={curValues.frameDepth}
+                                        rabbetDepth={curValues.rabbetDepth}
+                                        profileType={curValues.profileType}
+                                        profileSVG={curValues.profileSVG || undefined}
+                                        textureUrl={curValues.textureUrl}
+                                        invertTexture={curValues.invertTexture}
+                                    />
+                                </>
                             ) : null}
                         </div>
                     </div>

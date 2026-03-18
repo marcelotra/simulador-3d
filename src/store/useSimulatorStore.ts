@@ -12,6 +12,7 @@ export interface FrameData {
     rabbetDepth: number; // depth down to art
     profileType: 'reto' | 'caixa' | 'canaleta' | 'curvo';
     profileSVG?: string; // Optional path data for clip-path
+    elbowUrl?: string; // Imagem do cotovelo gerado em 3D
     invertTexture?: boolean; // Inverter interno/externo da textura
     costPrice: number;
     salePrice: number;
