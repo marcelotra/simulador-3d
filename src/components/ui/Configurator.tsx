@@ -398,19 +398,29 @@ export function Configurator() {
                                         `}
                                     >
                                         {/* Visual Area (Left) */}
-                                        <div className="w-[45%] p-3 bg-white flex flex-col items-center justify-between border-r border-zinc-50 relative">
-                                            {/* 3D Elbow */}
-                                            <div className="flex-1 flex items-center justify-center scale-90">
-                                                <FrameChevron frame={frame} size={80} />
+                                        <div className="w-[45%] p-2 bg-white flex flex-col items-center justify-between border-r border-zinc-50 relative">
+                                            {/* Foto Principal (Perfil Real ou 3D Elbow) */}
+                                            <div className="flex-1 w-full flex items-center justify-center overflow-hidden rounded-lg">
+                                                {frame.previewUrl ? (
+                                                    <img 
+                                                        src={frame.previewUrl} 
+                                                        className="w-full h-full object-cover rounded-lg" 
+                                                        alt="Perfil Real"
+                                                    />
+                                                ) : (
+                                                    <div className="scale-90">
+                                                        <FrameChevron frame={frame} size={80} />
+                                                    </div>
+                                                )}
                                             </div>
                                             
-                                            {/* Profile Preview */}
-                                            <div className="h-12 w-full flex items-center justify-center mt-1 border-t border-zinc-100 pt-2">
+                                            {/* Desenho Técnico (Foto ou SVG) */}
+                                            <div className="h-14 w-full flex items-center justify-center mt-2 border-t border-zinc-100 pt-2 bg-zinc-50/20 rounded-b-lg">
                                                 {frame.profileImageUrl ? (
-                                                    <img src={frame.profileImageUrl} className="max-h-full max-w-full object-contain" />
+                                                    <img src={frame.profileImageUrl} className="max-h-full max-w-full object-contain mix-blend-multiply" />
                                                 ) : (
                                                     <div 
-                                                        className="w-8 h-8 bg-zinc-100 shadow-inner"
+                                                        className="w-10 h-10 bg-zinc-200 shadow-inner opacity-50"
                                                         style={{ clipPath: frame.profileSVG || 'none' }}
                                                     />
                                                 )}

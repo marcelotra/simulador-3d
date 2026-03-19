@@ -477,7 +477,7 @@ export default function FrameManager() {
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-zinc-500 mb-2 uppercase tracking-wider">Galeria (Menu)</label>
+                                        <label className="block text-xs font-medium text-zinc-500 mb-2 uppercase tracking-wider underline">1. Perfil Real (Detalhe)</label>
                                         <label className="relative block aspect-square rounded-lg border-2 border-dashed border-zinc-200 bg-zinc-50 flex flex-col items-center justify-center overflow-hidden group hover:border-zinc-300 transition-colors cursor-pointer">
                                             {galleryImage ? (
                                                 <img src={galleryImage} className="w-full h-full object-cover" alt="Gallery Preview" />
@@ -501,7 +501,7 @@ export default function FrameManager() {
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-zinc-500 mb-2 uppercase tracking-wider">Perfil Real (Foto)</label>
+                                        <label className="block text-xs font-medium text-zinc-500 mb-2 uppercase tracking-wider underline">2. Desenho Técnico (Foto)</label>
                                         <label className="relative block aspect-square rounded-lg border-2 border-dashed border-zinc-200 bg-zinc-50 flex flex-col items-center justify-center overflow-hidden group hover:border-zinc-300 transition-colors cursor-pointer">
                                             {profileRealImage ? (
                                                 <img src={profileRealImage} className="w-full h-full object-cover" alt="Profile Real Preview" />
