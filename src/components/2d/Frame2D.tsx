@@ -377,45 +377,50 @@ export function Frame2D() {
                             )}
 
                             {/* INNER AREA (ARTE E PASSE-PARTOUT) */}
-                            <div
-                                className="absolute shadow-inner overflow-hidden"
-                                style={{
-                                    top: `${fw * s}px`,
-                                    left: `${fw * s}px`,
-                                    width: `${(seg.w + paperMargin * 2) * s}px`,
-                                    height: `${(seg.h + paperMargin * 2) * s}px`,
-                                    backgroundColor: (passepartoutWidth > 0 && hasFrame) ? passepartoutColor : 'transparent',
-                                    padding: `${(hasFrame ? passepartoutWidth : 0) * s}px`,
-                                    boxShadow: hasFrame ? 'inset 0px 4px 20px rgba(0,0,0,0.6)' : 'none',
-                                    transform: `translateZ(-${rabbetDepth * s}px)`,
-                                }}
-                            >
-                                <div
-                                    className="w-full h-full bg-white relative"
-                                    style={{ padding: `${paperMargin * s}px` }}
-                                >
-                                    <div className="w-full h-full relative overflow-hidden bg-zinc-50">
-                                        {userImage ? (
-                                            <img
-                                                src={userImage}
-                                                alt="Arte"
-                                                className="absolute max-w-none"
-                                                style={{
-                                                    width: `${Number(width) / seg.w * 100}%`,
-                                                    height: `${Number(height) / seg.h * 100}%`,
-                                                    left: `-${seg.imgX * (Number(width) / seg.w)}%`,
-                                                    top: `-${seg.imgY * (Number(height) / seg.h)}%`,
-                                                    objectFit: 'cover'
-                                                }}
-                                            />
-                                        ) : (
-                                            <div className="absolute inset-0 flex items-center justify-center text-zinc-300 font-medium text-[8px] uppercase tracking-widest">
-                                                Vazio
+                            {(() => {
+                                const rw = hasFrame ? Math.max(0.2, currentFrame?.rabbetWidth || 0.5) : 0;
+                                return (
+                                    <div
+                                        className="absolute shadow-inner overflow-hidden"
+                                        style={{
+                                            top: `${(fw - rw) * s}px`,
+                                            left: `${(fw - rw) * s}px`,
+                                            width: `${(seg.w + paperMargin * 2 + rw * 2) * s}px`,
+                                            height: `${(seg.h + paperMargin * 2 + rw * 2) * s}px`,
+                                            backgroundColor: (passepartoutWidth > 0 && hasFrame) ? passepartoutColor : 'transparent',
+                                            padding: `${((hasFrame ? passepartoutWidth : 0) + rw) * s}px`,
+                                            boxShadow: hasFrame ? 'inset 0px 4px 20px rgba(0,0,0,0.6)' : 'none',
+                                            transform: `translateZ(-${rabbetDepth * s}px)`,
+                                        }}
+                                    >
+                                        <div
+                                            className="w-full h-full bg-white relative"
+                                            style={{ padding: `${paperMargin * s}px` }}
+                                        >
+                                            <div className="w-full h-full relative overflow-hidden bg-zinc-50">
+                                                {userImage ? (
+                                                    <img
+                                                        src={userImage}
+                                                        alt="Arte"
+                                                        className="absolute max-w-none"
+                                                        style={{
+                                                            width: `${Number(width) / seg.w * 100}%`,
+                                                            height: `${Number(height) / seg.h * 100}%`,
+                                                            left: `-${seg.imgX * (Number(width) / seg.w)}%`,
+                                                            top: `-${seg.imgY * (Number(height) / seg.h)}%`,
+                                                            objectFit: 'cover'
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <div className="absolute inset-0 flex items-center justify-center text-zinc-300 font-medium text-[8px] uppercase tracking-widest">
+                                                        Vazio
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
+                                );
+                            })()}
                         </div>
                     );
                 })}
