@@ -7,7 +7,6 @@ import { Upload, ChevronLeft, Save, Edit2, Trash2, X, PenTool } from 'lucide-rea
 import { Link } from 'react-router-dom';
 import { PathEditorModal } from '../../components/admin/PathEditorModal';
 import { FrameCornerGenerator, FrameCornerGeneratorRef } from '../../components/admin/FrameCornerGenerator';
-import { FrameElbowGenerator, FrameElbowGeneratorRef } from '../../components/admin/FrameElbowGenerator';
 
 const frameSchema = z.object({
     name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
@@ -44,7 +43,6 @@ export default function FrameManager() {
     const { availableFrames, addFrame, updateFrame, removeFrame } = useSimulatorStore();
     const [textureImage, setTextureImage] = useState<string | null>(null);
     const [galleryImage, setGalleryImage] = useState<string | null>(null);
-    const [elbowImage, setElbowImage] = useState<string | null>(null);
     const [profileRealImage, setProfileRealImage] = useState<string | null>(null);
     const [profileSVGData, setProfileSVGData] = useState<string | null>(null);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -96,14 +94,6 @@ export default function FrameManager() {
         }
     };
 
-    const handleElbowChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => setElbowImage(reader.result as string);
-            reader.readAsDataURL(file);
-        }
-    };
 
     const handleProfileRealChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -154,7 +144,6 @@ export default function FrameManager() {
         });
         setTextureImage(frame.textureUrl);
         setGalleryImage(frame.previewUrl || null);
-        setElbowImage(frame.elbowUrl || null);
         setProfileRealImage(frame.profileImageUrl || null);
         setProfileSVGData(frame.profileSVG || null);
     };
@@ -177,7 +166,6 @@ export default function FrameManager() {
         });
         setTextureImage(null);
         setGalleryImage(null);
-        setElbowImage(null);
         setProfileRealImage(null);
         setProfileSVGData(null);
     };
@@ -194,7 +182,6 @@ export default function FrameManager() {
             category: data.category as any,
             textureUrl: textureImage,
             previewUrl: galleryImage || undefined,
-            elbowUrl: elbowImage || undefined,
             frameWidth: data.frameWidth,
             frameDepth: data.frameDepth,
             rabbetWidth: data.rabbetWidth,
@@ -219,9 +206,7 @@ export default function FrameManager() {
     };
 
     const generatorRef = useRef<FrameCornerGeneratorRef>(null);
-    const elbowGeneratorRef = useRef<FrameElbowGeneratorRef>(null);
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
-    const [isGeneratingElbow, setIsGeneratingElbow] = useState(false);
 
     const handleGeneratePreview = async (e: React.MouseEvent) => {
         e.preventDefault();
@@ -250,31 +235,6 @@ export default function FrameManager() {
         }
     };
 
-    const handleGenerateElbow = async (e: React.MouseEvent) => {
-        e.preventDefault();
-        if (!textureImage) {
-            alert("Faça o upload da Textura Principal primeiro para gerar a foto 3D.");
-            return;
-        }
-
-        if (elbowGeneratorRef.current) {
-            try {
-                setIsGeneratingElbow(true);
-                await new Promise(r => setTimeout(r, 200)); 
-                const dataUrl = await elbowGeneratorRef.current.generateImage();
-                if (dataUrl) {
-                    setElbowImage(dataUrl);
-                } else {
-                    alert("Não foi possível capturar a imagem do Cotovelo.");
-                }
-            } catch (err) {
-                console.error(err);
-                alert("Erro ao tentar gerar foto do cotovelo.");
-            } finally {
-                setIsGeneratingElbow(false);
-            }
-        }
-    };
 
     // Derived values for the generator
     const curValues = {
@@ -572,16 +532,6 @@ export default function FrameManager() {
                                 <>
                                     <FrameCornerGenerator 
                                         ref={generatorRef}
-                                        frameWidth={curValues.frameWidth}
-                                        frameDepth={curValues.frameDepth}
-                                        rabbetDepth={curValues.rabbetDepth}
-                                        profileType={curValues.profileType}
-                                        profileSVG={curValues.profileSVG || undefined}
-                                        textureUrl={curValues.textureUrl}
-                                        invertTexture={curValues.invertTexture}
-                                    />
-                                    <FrameElbowGenerator 
-                                        ref={elbowGeneratorRef}
                                         frameWidth={curValues.frameWidth}
                                         frameDepth={curValues.frameDepth}
                                         rabbetDepth={curValues.rabbetDepth}

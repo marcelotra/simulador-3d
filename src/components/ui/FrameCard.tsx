@@ -1,4 +1,3 @@
-import React from 'react';
 import { FrameData } from '../../store/useSimulatorStore';
 import { FrameChevron } from './FrameChevron';
 
