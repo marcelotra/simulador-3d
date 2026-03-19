@@ -1,28 +1,26 @@
-import { useState } from 'react';
 import { useSimulatorStore } from '../../store/useSimulatorStore';
 import { SelectionModal } from './SelectionModal';
-import { ChevronRight, Check } from 'lucide-react';
+import { FrameCard } from './FrameCard';
 
 interface FrameSelectionModalProps {
     isOpen: boolean;
     onClose: () => void;
 }
 
+const TABS = ['Todos', 'Material', 'Moldura', 'Tamanho', 'Passe-partout', 'Vidro'];
+
 export function FrameSelectionModal({ isOpen, onClose }: FrameSelectionModalProps) {
-    const { availableFrames, frameProfileId, setFrameProfileId, setHasFrame } = useSimulatorStore();
-    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+    const { availableFrames, frameProfileId, setFrameProfileId, setHasFrame, hasFrame } = useSimulatorStore();
 
     const categories = Array.from(new Set(availableFrames.map(f => f.category)));
-    const filteredFrames = availableFrames.filter(f => f.category === selectedCategory);
 
     const handleFrameSelect = (id: string) => {
         setFrameProfileId(id);
         setHasFrame(true);
         onClose();
-        setSelectedCategory(null);
     };
 
-    const handleNoFrame = () => {
+    const handleRemoveFrame = () => {
         setHasFrame(false);
         onClose();
     };
@@ -30,78 +28,77 @@ export function FrameSelectionModal({ isOpen, onClose }: FrameSelectionModalProp
     return (
         <SelectionModal
             isOpen={isOpen}
-            onClose={() => {
-                onClose();
-                setSelectedCategory(null);
-            }}
-            title={selectedCategory ? `Molduras: ${selectedCategory}` : "Escolha a Categoria"}
+            onClose={onClose}
+            title="" // We'll render our own header
         >
-            {!selectedCategory ? (
-                /* Step 1: Categories */
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {/* No frame option */}
-                    <button
-                        onClick={handleNoFrame}
-                        className="group p-8 rounded-2xl border-2 border-zinc-100 hover:border-zinc-400 hover:bg-zinc-50 transition-all text-left flex items-center justify-between"
-                    >
-                        <span className="text-xl font-bold text-zinc-400 group-hover:text-zinc-600 transition-colors">Sem Moldura</span>
-                        <ChevronRight className="w-5 h-5 text-zinc-200 group-hover:text-zinc-400 group-hover:translate-x-1 transition-all" />
-                    </button>
-                    {categories.map((cat) => (
-                        <button
-                            key={cat}
-                            onClick={() => setSelectedCategory(cat)}
-                            className="group p-8 rounded-2xl border-2 border-zinc-100 hover:border-zinc-900 hover:bg-zinc-900 transition-all text-left flex items-center justify-between"
-                        >
-                            <span className="text-xl font-bold text-zinc-900 group-hover:text-white transition-colors">{cat}</span>
-                            <ChevronRight className="w-5 h-5 text-zinc-300 group-hover:text-white group-hover:translate-x-1 transition-all" />
-                        </button>
-                    ))}
-                </div>
-            ) : (
-                /* Step 2: Gallery */
-                <div className="flex flex-col gap-6">
-                    <button
-                        onClick={() => setSelectedCategory(null)}
-                        className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-900 flex items-center gap-1 transition-colors self-start"
-                    >
-                        ← Voltar para categorias
-                    </button>
+            <div className="flex flex-col min-h-full">
+                {/* Custom Header */}
+                <div className="mx-auto flex flex-col items-center mb-12">
+                    <h1 className="text-6xl font-light text-zinc-300 mb-8 mt-4">Escolha sua moldura</h1>
+                    
+                    {/* Tabs Navigation */}
+                    <div className="flex gap-1 p-1 bg-zinc-900 rounded-full overflow-hidden mb-8">
+                        {TABS.map(tab => (
+                            <button
+                                key={tab}
+                                className={`px-8 py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all ${
+                                    tab === 'Moldura' 
+                                        ? 'bg-orange-600 text-white shadow-lg' 
+                                        : 'text-zinc-400 hover:text-white'
+                                }`}
+                            >
+                                {tab}
+                            </button>
+                        ))}
+                    </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                        {filteredFrames.map((frame) => {
-                            const isSelected = frameProfileId === frame.id;
-                            return (
-                                <button
-                                    key={frame.id}
-                                    onClick={() => handleFrameSelect(frame.id)}
-                                    className={`group flex flex-col text-left rounded-2xl overflow-hidden border-2 transition-all ${isSelected
-                                        ? 'border-zinc-900 ring-4 ring-zinc-900/5'
-                                        : 'border-zinc-100 hover:border-zinc-300'
-                                        }`}
-                                >
-                                    <div className="aspect-square w-full overflow-hidden bg-zinc-100 relative">
-                                        <img
-                                            src={frame.previewUrl || frame.textureUrl}
-                                            className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-500"
-                                            alt={frame.name}
-                                        />
-                                        {isSelected && (
-                                            <div className="absolute top-2 right-2 bg-zinc-900 text-white p-1 rounded-full shadow-lg">
-                                                <Check className="w-3 h-3" />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="p-4 bg-white">
-                                        <h3 className="font-bold text-zinc-900 text-sm leading-tight mb-1">{frame.name}</h3>
-                                        <p className="text-[10px] uppercase tracking-wider text-zinc-400 font-bold">{frame.frameWidth}cm largura</p>
-                                    </div>
-                                </button>
-                            );
-                        })}
+                    {/* Sub-navigation & Action */}
+                    <div className="w-full flex items-center justify-between border-b border-orange-600 pb-2 mb-8">
+                        <div className="flex gap-6">
+                            <button className="text-[10px] font-black uppercase tracking-widest text-orange-600 border-b-2 border-orange-600">Todas</button>
+                            {categories.map(cat => (
+                                <button key={cat} className="text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-zinc-900 transition-colors">{cat}</button>
+                            ))}
+                        </div>
+                        <div className="flex items-center gap-6">
+                            <button 
+                                onClick={handleRemoveFrame}
+                                className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-900 flex items-center gap-1 transition-colors"
+                            >
+                                Remover moldura
+                            </button>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Visualização</span>
+                                <div className="w-10 h-5 bg-zinc-200 rounded-full relative cursor-pointer">
+                                    <div className="absolute left-1 top-1 w-3 h-3 bg-zinc-400 rounded-full" />
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            )}
+
+                {/* Categories and Cards List */}
+                <div className="max-w-6xl mx-auto w-full space-y-16 pb-20">
+                    {categories.map(category => (
+                        <div key={category} className="space-y-8">
+                            <h2 className="text-5xl font-light text-zinc-300 lowercase">{category}</h2>
+                            
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                {availableFrames
+                                    .filter(f => f.category === category)
+                                    .map(frame => (
+                                        <FrameCard
+                                            key={frame.id}
+                                            frame={frame}
+                                            isSelected={hasFrame && frameProfileId === frame.id}
+                                            onSelect={handleFrameSelect}
+                                        />
+                                    ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
         </SelectionModal>
     );
 }

@@ -14,6 +14,7 @@ export interface FrameData {
     profileSVG?: string; // Optional path data for clip-path
     elbowUrl?: string; // Imagem do cotovelo gerado em 3D
     invertTexture?: boolean; // Inverter interno/externo da textura
+    features?: string[]; // Bullet points for UI
     costPrice: number;
     salePrice: number;
 }
@@ -135,6 +136,7 @@ const defaultInitialFrames: FrameData[] = [
         // Representação fiel do desenho técnico (57x38mm) em formato polygon
         profileSVG: 'polygon(0% 100%, 0% 40%, 15% 35%, 25% 15%, 45% 5%, 65% 0%, 80% 5%, 85% 15%, 85% 35%, 100% 35%, 100% 100%)', 
         invertTexture: true,
+        features: ['Moldura larga dourada', 'Estilo clássico com entalhes', 'Acabamento premium'],
         costPrice: 45.00,
         salePrice: 120.00
     },
@@ -148,6 +150,7 @@ const defaultInitialFrames: FrameData[] = [
         rabbetWidth: 0.5,
         rabbetDepth: 2.5,
         profileType: 'caixa',
+        features: ['Alumínio preto fosco', 'Perfil fino e elegante', 'Ideal para fotos P&B'],
         costPrice: 20.00,
         salePrice: 65.00
     },
@@ -161,6 +164,7 @@ const defaultInitialFrames: FrameData[] = [
         rabbetWidth: 0.6,
         rabbetDepth: 1.0,
         profileType: 'reto',
+        features: ['Madeira laqueada branca', 'Design minimalista', 'Fácil de limpar'],
         costPrice: 25.00,
         salePrice: 85.00
     },
@@ -174,6 +178,7 @@ const defaultInitialFrames: FrameData[] = [
         rabbetWidth: 0.6,
         rabbetDepth: 1.5,
         profileType: 'caixa',
+        features: ['Madeira maciça freijó', 'Textura natural única', 'Acabamento encerado'],
         costPrice: 35.00,
         salePrice: 110.00
     }
