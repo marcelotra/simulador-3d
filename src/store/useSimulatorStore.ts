@@ -13,6 +13,7 @@ export interface FrameData {
     profileType: 'reto' | 'caixa' | 'canaleta' | 'curvo';
     profileSVG?: string; // Optional path data for clip-path
     elbowUrl?: string; // Imagem do cotovelo gerado em 3D
+    profileImageUrl?: string; // Foto real do perfil técnico
     invertTexture?: boolean; // Inverter interno/externo da textura
     features?: string[]; // Bullet points for UI
     costPrice: number;

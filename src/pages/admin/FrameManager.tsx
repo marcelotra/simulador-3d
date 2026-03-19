@@ -22,6 +22,7 @@ const frameSchema = z.object({
     invertTexture: z.boolean().optional(),
     costPrice: z.number().min(0, 'Custo não pode ser negativo'),
     salePrice: z.number().min(0, 'Valor de venda não pode ser negativo'),
+    profileImageUrl: z.string().optional(),
 });
 
 type FrameFormValues = z.infer<typeof frameSchema>;
@@ -44,6 +45,7 @@ export default function FrameManager() {
     const [textureImage, setTextureImage] = useState<string | null>(null);
     const [galleryImage, setGalleryImage] = useState<string | null>(null);
     const [elbowImage, setElbowImage] = useState<string | null>(null);
+    const [profileRealImage, setProfileRealImage] = useState<string | null>(null);
     const [profileSVGData, setProfileSVGData] = useState<string | null>(null);
     const [editingId, setEditingId] = useState<string | null>(null);
     
@@ -103,6 +105,15 @@ export default function FrameManager() {
         }
     };
 
+    const handleProfileRealChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => setProfileRealImage(reader.result as string);
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleSVGChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -144,6 +155,7 @@ export default function FrameManager() {
         setTextureImage(frame.textureUrl);
         setGalleryImage(frame.previewUrl || null);
         setElbowImage(frame.elbowUrl || null);
+        setProfileRealImage(frame.profileImageUrl || null);
         setProfileSVGData(frame.profileSVG || null);
     };
 
@@ -166,6 +178,7 @@ export default function FrameManager() {
         setTextureImage(null);
         setGalleryImage(null);
         setElbowImage(null);
+        setProfileRealImage(null);
         setProfileSVGData(null);
     };
 
@@ -188,6 +201,7 @@ export default function FrameManager() {
             rabbetDepth: data.rabbetDepth,
             profileType: data.profileType,
             profileSVG: profileSVGData || undefined,
+            profileImageUrl: profileRealImage || undefined,
             invertTexture: data.invertTexture,
             costPrice: data.costPrice,
             salePrice: data.salePrice,
@@ -516,28 +530,18 @@ export default function FrameManager() {
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-zinc-500 mb-2 uppercase tracking-wider">Cotovelo (Perfil 3D)</label>
+                                        <label className="block text-xs font-medium text-zinc-500 mb-2 uppercase tracking-wider">Perfil Real (Foto)</label>
                                         <label className="relative block aspect-square rounded-lg border-2 border-dashed border-zinc-200 bg-zinc-50 flex flex-col items-center justify-center overflow-hidden group hover:border-zinc-300 transition-colors cursor-pointer">
-                                            {elbowImage ? (
-                                                <img src={elbowImage} className="w-full h-full object-cover" alt="Elbow Preview" />
+                                            {profileRealImage ? (
+                                                <img src={profileRealImage} className="w-full h-full object-cover" alt="Profile Real Preview" />
                                             ) : (
                                                 <div className="flex flex-col items-center justify-center text-zinc-400">
                                                     <Upload className="w-5 h-5 mb-1" />
-                                                    <span className="text-[10px] font-medium px-2 text-center">Envie foto ou gere em 3D</span>
+                                                    <span className="text-[10px] font-medium px-2 text-center">Foto do Taco Real</span>
                                                 </div>
                                             )}
-                                            <input type="file" accept="image/*" onChange={handleElbowChange} className="absolute inset-0 opacity-0 cursor-pointer" title="Foto do cotovelo para o perfil técnico" />
+                                            <input type="file" accept="image/*" onChange={handleProfileRealChange} className="absolute inset-0 opacity-0 cursor-pointer" title="Foto real do perfil para o card de escolha" />
                                         </label>
-                                        <div className="mt-2">
-                                            <button 
-                                                type="button"
-                                                onClick={handleGenerateElbow}
-                                                disabled={isGeneratingElbow || !textureImage}
-                                                className="w-full px-3 py-1.5 bg-zinc-900 text-white rounded-lg text-xs font-semibold hover:bg-zinc-800 transition-colors disabled:opacity-50"
-                                            >
-                                                {isGeneratingElbow ? "Gerando..." : "Gerar Cotovelo 3D"}
-                                            </button>
-                                        </div>
                                     </div>
                                 </div>
 

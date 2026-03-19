@@ -21,8 +21,8 @@ export function FrameSelectionModal({ isOpen, onClose }: FrameSelectionModalProp
         { id: 'metal', title: 'Metal Frame', items: metalFrames }
     ].filter(g => g.items.length > 0);
 
-    const handleFrameSelect = (id: string) => {
-        setFrameProfileId(id);
+    const handleFrameSelect = (frame: any) => {
+        setFrameProfileId(frame.id);
         setHasFrame(true);
         onClose();
     };
