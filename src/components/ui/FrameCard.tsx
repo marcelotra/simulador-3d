@@ -1,4 +1,5 @@
 import { FrameData } from '../../store/useSimulatorStore';
+import { FrameChevron } from './FrameChevron';
 
 interface FrameCardProps {
     frame: FrameData;
@@ -7,7 +8,7 @@ interface FrameCardProps {
 }
 
 export function FrameCard({ frame, isSelected, onSelect }: FrameCardProps) {
-    const { name, salePrice, features, frameWidth, frameDepth, profileSVG, elbowUrl, textureUrl } = frame;
+    const { name, salePrice, features, frameWidth, frameDepth, profileSVG } = frame;
 
     return (
         <button
@@ -20,11 +21,7 @@ export function FrameCard({ frame, isSelected, onSelect }: FrameCardProps) {
             <div className="md:w-[55%] p-8 bg-white flex items-center justify-center relative min-h-[280px] border-r border-zinc-50">
                 {/* Elbow / Chevron View */}
                 <div className="absolute inset-0 flex items-center justify-center p-10 mt-[-20px]">
-                    <img 
-                        src={elbowUrl || textureUrl} 
-                        alt={name} 
-                        className="max-w-[75%] max-h-[75%] object-contain transition-transform group-hover:scale-105 duration-700 drop-shadow-2xl" 
-                    />
+                    <FrameChevron frame={frame} size={240} className="drop-shadow-2xl transition-transform group-hover:scale-110 duration-700" />
                 </div>
 
                 {/* Profile Drawing (Bottom Right Overlay) */}

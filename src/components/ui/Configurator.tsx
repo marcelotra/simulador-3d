@@ -10,6 +10,7 @@ import { PaperModal } from './PaperModal';
 import { FrameSelectionModal } from './FrameSelectionModal';
 import { CartModal } from './CartModal';
 import { SplitSettings } from './SplitSettings';
+import { FrameChevron } from './FrameChevron';
 
 const GLASS_OPTIONS = [
     { id: 'none', label: 'Sem Vidro', desc: 'Sem proteção' },
@@ -337,7 +338,7 @@ export function Configurator() {
                     <div className="flex items-start justify-between mb-3">
                         <div>
                             <SectionTitle step={4} title="Moldura" tooltip="Escolha o design que fecha a sua obra. A moldura define o estilo final (Clássico, Moderno, Rústico) e protege todo o conjunto." />
-                            <p className="text-sm font-bold text-zinc-900 mt-1 -translate-y-2">
+                            <p className="text-base font-black text-zinc-900 mt-1.5 -translate-y-2.5 tracking-tight">
                                 {store.hasFrame ? selectedFrame?.name ?? 'Selecione' : 'Sem Moldura'}
                             </p>
                         </div>
@@ -354,34 +355,45 @@ export function Configurator() {
                         {/* Sem Moldura */}
                         <button
                             onClick={() => store.setHasFrame(false)}
-                            className="flex-shrink-0 flex flex-col items-center gap-1.5"
+                            className="flex-shrink-0 flex flex-col items-center gap-2 group/item"
                         >
-                            <div className={`w-16 h-16 rounded-xl border-2 flex items-center justify-center transition-all ${
-                                !store.hasFrame ? 'border-zinc-900 bg-zinc-900' : 'border-zinc-200 bg-zinc-50 hover:border-zinc-400'
+                            <div className={`w-20 h-20 rounded-2xl border-2 flex items-center justify-center transition-all ${
+                                !store.hasFrame 
+                                    ? 'border-zinc-900 bg-zinc-900 shadow-md ring-2 ring-zinc-900/5' 
+                                    : 'border-zinc-100 bg-zinc-50/50 hover:border-zinc-300'
                             }`}>
-                                <X className={`w-5 h-5 ${!store.hasFrame ? 'text-white' : 'text-zinc-400'}`} />
+                                <X className={`w-6 h-6 ${!store.hasFrame ? 'text-white' : 'text-zinc-300 group-hover/item:text-zinc-400'}`} />
                             </div>
-                            <span className={`text-[9px] font-bold uppercase tracking-tight ${!store.hasFrame ? 'text-zinc-900' : 'text-zinc-400'}`}>Sem</span>
+                            <span className={`text-[10px] font-black uppercase tracking-widest ${!store.hasFrame ? 'text-zinc-900' : 'text-zinc-400'}`}>Sem</span>
                         </button>
 
                         {store.availableFrames.map(frame => {
                             const isSelected = store.hasFrame && store.frameProfileId === frame.id;
-                            const src = frame.previewUrl || frame.textureUrl;
                             return (
                                 <button
                                     key={frame.id}
                                     onClick={() => { store.setFrameProfileId(frame.id); store.setHasFrame(true); }}
-                                    onMouseEnter={() => setHoveredFrame({ id: frame.id, src, name: frame.name })}
+                                    onMouseEnter={() => setHoveredFrame({ id: frame.id, src: frame.previewUrl || frame.textureUrl, name: frame.name })}
                                     onMouseLeave={() => setHoveredFrame(null)}
-                                    className="flex-shrink-0 flex flex-col items-center gap-1.5"
+                                    className="flex-shrink-0 flex flex-col items-center gap-2 group/item"
                                 >
-                                    <div className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${
-                                        isSelected ? 'border-zinc-900 ring-2 ring-zinc-900/10' : 'border-zinc-200 hover:border-zinc-400'
+                                    <div className={`w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all relative flex items-center justify-center bg-white ${
+                                        isSelected 
+                                            ? 'border-[#ff4500] shadow-md shadow-orange-500/20 z-10' 
+                                            : 'border-zinc-100 hover:border-zinc-300 bg-zinc-50/30'
                                     }`}>
-                                        <img src={src} alt={frame.name} className="w-full h-full object-cover" />
+                                        <FrameChevron frame={frame} size={70} className="mt-[-5px]" />
+                                        
+                                        {/* Profile Icon Badge */}
+                                        <div className="absolute bottom-1 right-1 w-5 h-5 bg-white/80 p-0.5 rounded-md border border-zinc-100 flex items-center justify-center overflow-hidden">
+                                            <div 
+                                                className="w-full h-full bg-zinc-400" 
+                                                style={{ clipPath: frame.profileSVG || 'none' }}
+                                            />
+                                        </div>
                                     </div>
-                                    <span className={`text-[9px] font-bold uppercase tracking-tight max-w-[64px] truncate ${isSelected ? 'text-zinc-900' : 'text-zinc-400'}`}>
-                                        {frame.category}
+                                    <span className={`text-[10px] font-black uppercase tracking-widest max-w-[80px] truncate transition-colors ${isSelected ? 'text-[#ff4500]' : 'text-zinc-400 group-hover/item:text-zinc-600'}`}>
+                                        {frame.category === 'Madeira' ? 'Wood' : frame.category}
                                     </span>
                                 </button>
                             );

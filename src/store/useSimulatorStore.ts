@@ -149,7 +149,8 @@ const defaultInitialFrames: FrameData[] = [
         frameDepth: 3.0,
         rabbetWidth: 0.5,
         rabbetDepth: 2.5,
-        profileType: 'caixa',
+        profileType: 'reto',
+        profileSVG: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
         features: ['Alumínio preto fosco', 'Perfil fino e elegante', 'Ideal para fotos P&B'],
         costPrice: 20.00,
         salePrice: 65.00
@@ -164,6 +165,7 @@ const defaultInitialFrames: FrameData[] = [
         rabbetWidth: 0.6,
         rabbetDepth: 1.0,
         profileType: 'reto',
+        profileSVG: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
         features: ['Madeira laqueada branca', 'Design minimalista', 'Fácil de limpar'],
         costPrice: 25.00,
         salePrice: 85.00
@@ -178,6 +180,7 @@ const defaultInitialFrames: FrameData[] = [
         rabbetWidth: 0.6,
         rabbetDepth: 1.5,
         profileType: 'caixa',
+        profileSVG: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
         features: ['Madeira maciça freijó', 'Textura natural única', 'Acabamento encerado'],
         costPrice: 35.00,
         salePrice: 110.00
