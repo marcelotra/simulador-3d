@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+
 
 export interface FrameData {
     id: string; // SKU or UUID
@@ -218,21 +220,7 @@ const defaultInitialPapers: PaperData[] = [
     }
 ];
 
-const getStoredFrames = (): FrameData[] => {
-    try {
-        const stored = localStorage.getItem('sim_custom_frames');
-        if (stored) return JSON.parse(stored);
-    } catch (e) { }
-    return defaultInitialFrames;
-};
-
-const getStoredPapers = (): PaperData[] => {
-    try {
-        const stored = localStorage.getItem('sim_custom_papers');
-        if (stored) return JSON.parse(stored);
-    } catch (e) { }
-    return defaultInitialPapers;
-};
+// REMOVED manual getStored functions as persist handles it
 
 const INITIAL_STATE = {
     width: 40,
@@ -257,42 +245,32 @@ const INITIAL_STATE = {
     cameraAngle: 'center' as CameraAngle,
 };
 
-export const useSimulatorStore = create<FrameState>((set) => ({
-    ...INITIAL_STATE,
-    availableFrames: getStoredFrames(),
-    availablePapers: getStoredPapers(),
-    cart: [],
+export const useSimulatorStore = create<FrameState>()(
+    persist(
+        (set) => ({
+            ...INITIAL_STATE,
+            availableFrames: defaultInitialFrames,
+            availablePapers: defaultInitialPapers,
+            cart: [],
 
-    addFrame: (frame) => set((state) => {
-        const newFrames = [...state.availableFrames, frame];
-        localStorage.setItem('sim_custom_frames', JSON.stringify(newFrames));
-        return { availableFrames: newFrames };
-    }),
-    updateFrame: (id, data) => set((state) => {
-        const newFrames = state.availableFrames.map(f => f.id === id ? { ...f, ...data } : f);
-        localStorage.setItem('sim_custom_frames', JSON.stringify(newFrames));
-        return { availableFrames: newFrames };
-    }),
-    removeFrame: (id) => set((state) => {
-        const newFrames = state.availableFrames.filter(f => f.id !== id);
-        localStorage.setItem('sim_custom_frames', JSON.stringify(newFrames));
-        return { availableFrames: newFrames };
-    }),
-    addPaper: (paper) => set((state) => {
-        const newPapers = [...state.availablePapers, paper];
-        localStorage.setItem('sim_custom_papers', JSON.stringify(newPapers));
-        return { availablePapers: newPapers };
-    }),
-    updatePaper: (id, data) => set((state) => {
-        const newPapers = state.availablePapers.map(p => p.id === id ? { ...p, ...data } : p);
-        localStorage.setItem('sim_custom_papers', JSON.stringify(newPapers));
-        return { availablePapers: newPapers };
-    }),
-    removePaper: (id) => set((state) => {
-        const newPapers = state.availablePapers.filter(p => p.id !== id);
-        localStorage.setItem('sim_custom_papers', JSON.stringify(newPapers));
-        return { availablePapers: newPapers };
-    }),
+    addFrame: (frame) => set((state) => ({ 
+        availableFrames: [...state.availableFrames, frame] 
+    })),
+    updateFrame: (id, data) => set((state) => ({
+        availableFrames: state.availableFrames.map(f => f.id === id ? { ...f, ...data } : f)
+    })),
+    removeFrame: (id) => set((state) => ({
+        availableFrames: state.availableFrames.filter(f => f.id !== id)
+    })),
+    addPaper: (paper) => set((state) => ({ 
+        availablePapers: [...state.availablePapers, paper] 
+    })),
+    updatePaper: (id, data) => set((state) => ({
+        availablePapers: state.availablePapers.map(p => p.id === id ? { ...p, ...data } : p)
+    })),
+    removePaper: (id) => set((state) => ({
+        availablePapers: state.availablePapers.filter(p => p.id !== id)
+    })),
     setWidth: (w) => set({ width: w }),
     setHeight: (h) => set({ height: h }),
     setQuantity: (q) => set({ quantity: Math.max(1, q) }),
@@ -339,4 +317,10 @@ export const useSimulatorStore = create<FrameState>((set) => ({
     })),
     clearCart: () => set({ cart: [] }),
     resetConfiguration: () => set(INITIAL_STATE),
-}));
+}),
+{
+    name: 'sim-3d-storage',
+    storage: createJSONStorage(() => localStorage),
+}
+)
+);

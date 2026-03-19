@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useSimulatorStore, PaperData } from '../../store/useSimulatorStore';
 import { Plus, Trash2, Upload, FileText, DollarSign, ChevronLeft, Edit2, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { compressImage } from '../../utils/imageCompression';
+
 
 export default function PaperManager() {
     const { availablePapers, addPaper, updatePaper, removePaper } = useSimulatorStore();
@@ -55,8 +57,9 @@ export default function PaperManager() {
         const file = e.target.files?.[0];
         if (file) {
             const reader = new FileReader();
-            reader.onloadend = () => {
-                setImage(reader.result as string);
+            reader.onloadend = async () => {
+                const compressed = await compressImage(reader.result as string, 400, 0.7);
+                setImage(compressed);
             };
             reader.readAsDataURL(file);
         }

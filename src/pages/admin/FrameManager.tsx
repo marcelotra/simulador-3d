@@ -7,6 +7,7 @@ import { Upload, ChevronLeft, Save, Edit2, Trash2, X, PenTool } from 'lucide-rea
 import { Link } from 'react-router-dom';
 import { PathEditorModal } from '../../components/admin/PathEditorModal';
 import { FrameCornerGenerator, FrameCornerGeneratorRef } from '../../components/admin/FrameCornerGenerator';
+import { compressImage } from '../../utils/imageCompression';
 
 const frameSchema = z.object({
     name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
@@ -80,7 +81,10 @@ export default function FrameManager() {
         const file = e.target.files?.[0];
         if (file) {
             const reader = new FileReader();
-            reader.onloadend = () => setTextureImage(reader.result as string);
+            reader.onloadend = async () => {
+                const compressed = await compressImage(reader.result as string, 800, 0.7);
+                setTextureImage(compressed);
+            };
             reader.readAsDataURL(file);
         }
     };
@@ -89,7 +93,10 @@ export default function FrameManager() {
         const file = e.target.files?.[0];
         if (file) {
             const reader = new FileReader();
-            reader.onloadend = () => setGalleryImage(reader.result as string);
+            reader.onloadend = async () => {
+                const compressed = await compressImage(reader.result as string, 400, 0.7);
+                setGalleryImage(compressed);
+            };
             reader.readAsDataURL(file);
         }
     };
@@ -99,7 +106,10 @@ export default function FrameManager() {
         const file = e.target.files?.[0];
         if (file) {
             const reader = new FileReader();
-            reader.onloadend = () => setProfileRealImage(reader.result as string);
+            reader.onloadend = async () => {
+                const compressed = await compressImage(reader.result as string, 300, 0.7);
+                setProfileRealImage(compressed);
+            };
             reader.readAsDataURL(file);
         }
     };
@@ -222,7 +232,8 @@ export default function FrameManager() {
                 await new Promise(r => setTimeout(r, 200)); 
                 const dataUrl = await generatorRef.current.generateImage();
                 if (dataUrl) {
-                    setGalleryImage(dataUrl);
+                    const compressed = await compressImage(dataUrl, 400, 0.7);
+                    setGalleryImage(compressed);
                 } else {
                     alert("Não foi possível capturar a imagem do 3D.");
                 }
