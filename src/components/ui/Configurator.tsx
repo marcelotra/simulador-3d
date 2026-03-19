@@ -1,4 +1,4 @@
-import { Upload, X, Scissors, ChevronRight, Info } from 'lucide-react';
+import { Upload, X, Scissors, ChevronRight, Info, ZoomIn } from 'lucide-react';
 import { useSimulatorStore } from '../../store/useSimulatorStore';
 import { calculatePrice } from '../../utils/calculations';
 import { getSegments } from '../../utils/layout';
@@ -56,6 +56,7 @@ export function Configurator() {
     const [localHeight, setLocalHeight] = useState(String(store.height));
     const [dimEdited, setDimEdited] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
+    const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
 
     const analysis = store.userImage && store.imagePixels
         ? analyzeImage(store.imagePixels.width, store.imagePixels.height, store.width, store.height)
@@ -167,6 +168,7 @@ export function Configurator() {
                                 <button
                                     onClick={handleRemoveImage}
                                     className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full shadow hover:bg-red-50 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                                    title="Remover Imagem"
                                 >
                                     <X className="w-3.5 h-3.5" />
                                 </button>
@@ -260,22 +262,26 @@ export function Configurator() {
                         <p className="text-[10px] font-bold text-zinc-500 mb-2">Tamanho Personalizado</p>
                         <div className="flex items-stretch gap-2 mb-3">
                             <div className="relative flex-1">
-                                <label className="absolute text-[9px] font-bold text-zinc-400 top-1.5 left-3">largura</label>
+                                <label htmlFor="custom-width" className="absolute text-[9px] font-bold text-zinc-400 top-1.5 left-3">largura</label>
                                 <input
+                                    id="custom-width"
                                     type="number"
                                     value={localWidth}
                                     onChange={e => { setLocalWidth(e.target.value); setDimEdited(true); }}
                                     className="w-full pt-5 pb-2 px-3 border-2 border-zinc-200 rounded-xl text-lg font-black text-zinc-900 focus:outline-none focus:border-zinc-900 transition-all"
+                                    title="Largura personalizada"
                                 />
                             </div>
                             <div className="flex items-center text-zinc-300 font-bold text-sm pb-1">×</div>
                             <div className="relative flex-1">
-                                <label className="absolute text-[9px] font-bold text-zinc-400 top-1.5 left-3">altura</label>
+                                <label htmlFor="custom-height" className="absolute text-[9px] font-bold text-zinc-400 top-1.5 left-3">altura</label>
                                 <input
+                                    id="custom-height"
                                     type="number"
                                     value={localHeight}
                                     onChange={e => { setLocalHeight(e.target.value); setDimEdited(true); }}
                                     className="w-full pt-5 pb-2 px-3 border-2 border-zinc-200 rounded-xl text-lg font-black text-zinc-900 focus:outline-none focus:border-zinc-900 transition-all"
+                                    title="Altura personalizada"
                                 />
                             </div>
                             <button
@@ -400,13 +406,22 @@ export function Configurator() {
                                         {/* Visual Area (Left) */}
                                         <div className="w-[45%] p-2 bg-white flex flex-col items-center justify-between border-r border-zinc-50 relative">
                                             {/* Foto Principal (Perfil Real ou 3D Elbow) */}
-                                            <div className="flex-1 w-full flex items-center justify-center overflow-hidden rounded-lg">
+                                            <div className="flex-1 w-full flex items-center justify-center overflow-hidden rounded-lg relative group/img">
                                                 {frame.previewUrl ? (
-                                                    <img 
-                                                        src={frame.previewUrl} 
-                                                        className="w-full h-full object-cover rounded-lg" 
-                                                        alt="Perfil Real"
-                                                    />
+                                                    <>
+                                                        <img 
+                                                            src={frame.previewUrl} 
+                                                            className="w-full h-full object-cover rounded-lg" 
+                                                            alt="Perfil Real"
+                                                        />
+                                                        <button 
+                                                            onClick={(e) => { e.stopPropagation(); setEnlargedImage(frame.previewUrl!); }}
+                                                            className="absolute top-1 right-1 p-1.5 bg-white/90 rounded-full shadow-sm opacity-0 group-hover/img:opacity-100 transition-opacity hover:bg-white"
+                                                            title="Ampliar Foto"
+                                                        >
+                                                            <ZoomIn className="w-3.5 h-3.5 text-zinc-900" />
+                                                        </button>
+                                                    </>
                                                 ) : (
                                                     <div className="scale-90">
                                                         <FrameChevron frame={frame} size={80} />
@@ -415,9 +430,18 @@ export function Configurator() {
                                             </div>
                                             
                                             {/* Desenho Técnico (Foto ou SVG) */}
-                                            <div className="h-14 w-full flex items-center justify-center mt-2 border-t border-zinc-100 pt-2 bg-zinc-50/20 rounded-b-lg">
+                                            <div className="h-14 w-full flex items-center justify-center mt-2 border-t border-zinc-100 pt-2 bg-zinc-50/20 rounded-b-lg relative group/tech">
                                                 {frame.profileImageUrl ? (
-                                                    <img src={frame.profileImageUrl} className="max-h-full max-w-full object-contain mix-blend-multiply" />
+                                                    <>
+                                                        <img src={frame.profileImageUrl} className="max-h-full max-w-full object-contain mix-blend-multiply" alt="Perfil Técnico" />
+                                                        <button 
+                                                            onClick={(e) => { e.stopPropagation(); setEnlargedImage(frame.profileImageUrl!); }}
+                                                            className="absolute top-1 right-1 p-1 bg-white/90 rounded-full shadow-sm opacity-0 group-hover/tech:opacity-100 transition-opacity hover:bg-white"
+                                                            title="Ampliar Desenho"
+                                                        >
+                                                            <ZoomIn className="w-2.5 h-2.5 text-zinc-900" />
+                                                        </button>
+                                                    </>
                                                 ) : (
                                                     <div 
                                                         className="w-10 h-10 bg-zinc-200 shadow-inner opacity-50"
@@ -437,12 +461,9 @@ export function Configurator() {
                                         <div className={`p-4 flex flex-col justify-center text-left flex-1 transition-colors ${
                                             isSelected ? 'bg-blue-50/50' : 'bg-zinc-50/30'
                                         }`}>
-                                            <h4 className="text-[11px] font-black text-zinc-900 uppercase tracking-tight leading-tight mb-1">
+                                            <h4 className="text-[11px] font-black text-zinc-900 uppercase tracking-tight leading-tight mb-2">
                                                 {frame.name}
                                             </h4>
-                                            <p className="text-[10px] font-bold text-[#e91e63] mb-2">
-                                                from R$ {frame.salePrice.toFixed(2).replace('.', ',')}
-                                            </p>
                                             {frame.features && frame.features.length > 0 && (
                                                 <ul className="space-y-1">
                                                     {frame.features.slice(0, 2).map((feature, i) => (
@@ -483,11 +504,14 @@ export function Configurator() {
                                 </div>
                             )}
                         </div>
+                        <label htmlFor="passepartout-range" className="sr-only">Largura do Passe-Partout</label>
                         <input
+                            id="passepartout-range"
                             type="range" min={0} max={10} step={0.5}
                             value={store.passepartoutWidth}
                             onChange={e => store.setPassepartoutWidth(Number(e.target.value))}
                             className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-zinc-900 bg-zinc-200"
+                            title="Ajustar largura do Passe-Partout"
                         />
                         <div className="flex justify-between text-[9px] text-zinc-400 font-bold mt-1">
                             <span>0 cm</span><span>10 cm</span>
@@ -511,6 +535,7 @@ export function Configurator() {
                                                 ? 'border-zinc-900 bg-zinc-900 text-white'
                                                 : 'border-zinc-200 hover:border-zinc-400 text-zinc-900'
                                         }`}
+                                        title={`Selecionar proteção: ${g.label}`}
                                     >
                                         <span className="font-black text-[10px] uppercase tracking-tight block">{g.label}</span>
                                         <span className={`text-[9px] block mt-0.5 ${isSelected ? 'text-zinc-400' : 'text-zinc-400'}`}>{g.desc}</span>
@@ -527,6 +552,7 @@ export function Configurator() {
                     <button
                         onClick={() => setIsPaperModalOpen(true)}
                         className="w-full flex items-center justify-between p-4 bg-zinc-50 border border-zinc-200 rounded-xl hover:border-zinc-900 transition-all text-left group"
+                        title="Escolher tipo de papel"
                     >
                         <div className="flex items-center gap-3">
                             {selectedPaper?.imageUrl && (
@@ -564,6 +590,7 @@ export function Configurator() {
                 <button
                     onClick={handleFinalize}
                     className="w-full bg-zinc-900 text-white font-black py-4 rounded-2xl hover:bg-zinc-800 transition-all active:scale-[0.98] shadow-lg uppercase tracking-widest text-xs"
+                    title="Adicionar ao carrinho e finalizar"
                 >
                     Finalizar Pedido
                 </button>
@@ -584,6 +611,27 @@ export function Configurator() {
                     onCrop={handleCropComplete}
                     onClose={() => setIsCropping(false)}
                 />
+            )}
+            {/* Modal de Imagem Ampliada */}
+            {enlargedImage && (
+                <div 
+                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 animate-in fade-in duration-200"
+                    onClick={() => setEnlargedImage(null)}
+                >
+                    <button 
+                        className="absolute top-4 right-4 text-white p-2 hover:bg-white/10 rounded-full transition-colors"
+                        onClick={() => setEnlargedImage(null)}
+                        title="Fechar"
+                    >
+                        <X className="w-8 h-8" />
+                    </button>
+                    <img 
+                        src={enlargedImage} 
+                        className="max-w-[90vw] max-h-[90vh] object-contain rounded-xl shadow-2xl animate-in zoom-in-95 duration-200"
+                        alt="Zoomed"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
             )}
         </div>
     );
