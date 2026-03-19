@@ -1,5 +1,4 @@
 import { FrameData } from '../../store/useSimulatorStore';
-import { Check } from 'lucide-react';
 
 interface FrameCardProps {
     frame: FrameData;
@@ -13,68 +12,79 @@ export function FrameCard({ frame, isSelected, onSelect }: FrameCardProps) {
     return (
         <button
             onClick={() => onSelect(frame.id)}
-            className={`group w-full flex flex-col md:flex-row bg-white rounded-[2rem] border-2 transition-all overflow-hidden ${
-                isSelected 
-                    ? 'border-zinc-900 ring-4 ring-zinc-900/5' 
-                    : 'border-white hover:border-zinc-200 shadow-sm hover:shadow-md'
+            className={`group w-full flex flex-col md:flex-row rounded-[2.5rem] border-0 transition-all overflow-hidden shadow-sm hover:shadow-xl ${
+                isSelected ? 'ring-0' : ''
             }`}
         >
             {/* Visual Area (Left) */}
-            <div className="md:w-1/2 p-6 bg-white flex items-center justify-center relative min-h-[240px]">
+            <div className="md:w-[55%] p-8 bg-white flex items-center justify-center relative min-h-[280px] border-r border-zinc-50">
                 {/* Elbow / Chevron View */}
-                <div className="absolute inset-0 flex items-center justify-center p-8">
+                <div className="absolute inset-0 flex items-center justify-center p-10 mt-[-20px]">
                     <img 
                         src={elbowUrl || textureUrl} 
                         alt={name} 
-                        className="max-w-[80%] max-h-[80%] object-contain transition-transform group-hover:scale-105 duration-500" 
+                        className="max-w-[75%] max-h-[75%] object-contain transition-transform group-hover:scale-105 duration-700 drop-shadow-2xl" 
                     />
                 </div>
 
                 {/* Profile Drawing (Bottom Right Overlay) */}
-                <div className="absolute bottom-6 right-6 flex items-end gap-2 bg-white/40 backdrop-blur-sm p-2 rounded-xl">
-                    <div className="flex flex-col items-center gap-1">
-                        <div className="h-12 w-0.5 bg-zinc-300 relative">
-                            <span className="absolute -left-10 top-1/2 -translate-y-1/2 text-[9px] font-black text-zinc-400 rotate-0">
-                                {frameDepth}cm
-                            </span>
+                <div className="absolute bottom-10 right-10 flex items-end gap-3 scale-110">
+                    {/* Vertical Dimension (Depth) */}
+                    <div className="flex flex-col items-center relative mr-1">
+                        <div className="h-16 flex flex-col items-center justify-between py-1">
+                            <div className="w-1.5 h-[1px] bg-zinc-400" />
+                            <div className="w-[1px] h-full bg-zinc-400" />
+                            <div className="w-1.5 h-[1px] bg-zinc-400" />
                         </div>
+                        <span className="absolute -left-12 top-1/2 -translate-y-1/2 text-[10px] font-bold text-zinc-400">
+                            {frameDepth.toFixed(2).replace('.', ',')}"
+                        </span>
+                    </div>
+
+                    <div className="flex flex-col items-center gap-2">
                         {/* Profile Shape */}
                         <div 
-                            className="w-10 h-10 bg-zinc-200 border border-zinc-300"
+                            className="w-14 h-14 bg-zinc-100 border border-zinc-200 shadow-inner"
                             style={{ 
                                 clipPath: profileSVG || 'none',
-                                background: `linear-gradient(135deg, #e4e4e7 0%, #d4d4d8 100%)`
+                                background: `linear-gradient(135deg, #f3f4f6 0%, #e2e8f0 100%)`
                             }}
                         />
-                        <div className="w-10 h-0.5 bg-zinc-300 relative mt-1">
-                            <span className="absolute top-1 left-1/2 -translate-x-1/2 text-[9px] font-black text-zinc-400">
-                                {frameWidth}cm
+                        
+                        {/* Horizontal Dimension (Width) */}
+                        <div className="w-14 relative flex flex-col items-center">
+                            <div className="w-full h-4 flex items-center justify-between px-0.5">
+                                <div className="h-1.5 w-[1px] bg-zinc-400" />
+                                <div className="h-[1px] w-full bg-zinc-400" />
+                                <div className="h-1.5 w-[1px] bg-zinc-400" />
+                            </div>
+                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[10px] font-bold text-zinc-400 whitespace-nowrap">
+                                {frameWidth.toFixed(2).replace('.', ',')}"
                             </span>
                         </div>
                     </div>
                 </div>
 
-                {/* Selection Check */}
-                {isSelected && (
-                    <div className="absolute top-4 left-4 bg-zinc-900 text-white p-1.5 rounded-full z-10">
-                        <Check className="w-4 h-4" />
-                    </div>
-                )}
+                {/* Selection indicator could be here or we rely on the color change */}
             </div>
 
             {/* Content Area (Right) */}
-            <div className="md:w-1/2 p-8 md:p-10 flex flex-col justify-center bg-zinc-50/50">
-                <h3 className="text-xl font-black text-zinc-900 mb-2">{name}</h3>
+            <div className={`md:w-[45%] p-10 flex flex-col justify-center text-left transition-colors duration-300 ${
+                isSelected ? 'bg-[#00a8e8] text-white' : 'bg-zinc-50/70 text-zinc-900 group-hover:bg-zinc-100/80'
+            }`}>
+                <h3 className={`text-2xl font-black mb-1 tracking-tight ${isSelected ? 'text-white' : 'text-zinc-800'}`}>
+                    {name}
+                </h3>
                 
-                <p className="text-rose-600 font-bold mb-6">
-                    a partir de R$ {salePrice.toFixed(2).replace('.', ',')}
+                <p className={`font-bold mb-8 ${isSelected ? 'text-white/90' : 'text-rose-600'}`}>
+                    {isSelected ? `selecionada` : `a partir de R$ ${salePrice.toFixed(2).replace('.', ',')}`}
                 </p>
 
                 {features && features.length > 0 && (
-                    <ul className="space-y-2">
+                    <ul className="space-y-3">
                         {features.map((feature, i) => (
-                            <li key={i} className="flex items-start gap-2 text-xs font-medium text-zinc-600">
-                                <span className="w-1 h-1 rounded-full bg-zinc-400 mt-1.5 flex-shrink-0" />
+                            <li key={i} className={`flex items-start gap-3 text-xs font-bold leading-tight ${isSelected ? 'text-white/90' : 'text-zinc-500'}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full mt-1 flex-shrink-0 ${isSelected ? 'bg-white/60' : 'bg-zinc-300'}`} />
                                 {feature}
                             </li>
                         ))}
