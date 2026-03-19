@@ -55,7 +55,7 @@ export function Configurator() {
     const [localWidth, setLocalWidth] = useState(String(store.width));
     const [localHeight, setLocalHeight] = useState(String(store.height));
     const [dimEdited, setDimEdited] = useState(false);
-    const [hoveredFrame, setHoveredFrame] = useState<{ id: string; src: string; name: string } | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
     const analysis = store.userImage && store.imagePixels
         ? analyzeImage(store.imagePixels.width, store.imagePixels.height, store.width, store.height)
@@ -334,99 +334,120 @@ export function Configurator() {
                 <SplitSettings />
 
                 {/* ── Moldura ── */}
-                <section className="py-4">
-                    <div className="flex items-start justify-between mb-3">
+                <section className="py-6">
+                    <div className="flex items-start justify-between mb-4 px-1">
                         <div>
-                            <SectionTitle step={4} title="Moldura" tooltip="Escolha o design que fecha a sua obra. A moldura define o estilo final (Clássico, Moderno, Rústico) e protege todo o conjunto." />
-                            <p className="text-base font-black text-zinc-900 mt-1.5 -translate-y-2.5 tracking-tight">
+                            <SectionTitle step={4} title="Escolha sua Moldura" tooltip="A moldura define o estilo final (Clássico, Moderno, Rústico) e protege todo o conjunto." />
+                            <p className="text-xl font-black text-zinc-900 mt-1 tracking-tight">
                                 {store.hasFrame ? selectedFrame?.name ?? 'Selecione' : 'Sem Moldura'}
                             </p>
                         </div>
-                        <button
-                            onClick={() => setIsFrameModalOpen(true)}
-                            className="text-[9px] font-black text-zinc-500 hover:text-zinc-900 uppercase tracking-widest flex items-center gap-0.5 transition-colors"
-                        >
-                            Ver Todas <ChevronRight className="w-3 h-3" />
-                        </button>
                     </div>
 
-                    {/* Thumbnail row — PRIMEIRO para o layout não mudar */}
-                    <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1" style={{ scrollbarWidth: 'none' }}>
-                        {/* Sem Moldura */}
-                        <button
-                            onClick={() => store.setHasFrame(false)}
-                            className="flex-shrink-0 flex flex-col items-center gap-2 group/item"
-                        >
-                            <div className={`w-20 h-20 rounded-2xl border-2 flex items-center justify-center transition-all ${
-                                !store.hasFrame 
-                                    ? 'border-zinc-900 bg-zinc-900 shadow-md ring-2 ring-zinc-900/5' 
-                                    : 'border-zinc-100 bg-zinc-50/50 hover:border-zinc-300'
-                            }`}>
-                                <X className={`w-6 h-6 ${!store.hasFrame ? 'text-white' : 'text-zinc-300 group-hover/item:text-zinc-400'}`} />
-                            </div>
-                            <span className={`text-[10px] font-black uppercase tracking-widest ${!store.hasFrame ? 'text-zinc-900' : 'text-zinc-400'}`}>Sem</span>
-                        </button>
+                    {/* Categorias */}
+                    <div className="flex gap-2 overflow-x-auto pb-4 px-1 mb-2" style={{ scrollbarWidth: 'none' }}>
+                        {['all', 'Madeira', 'Preta', 'Branca', 'Dourada', 'Prata'].map(cat => (
+                            <button
+                                key={cat}
+                                onClick={() => setSelectedCategory(cat)}
+                                className={`flex-shrink-0 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+                                    selectedCategory === cat 
+                                        ? 'bg-zinc-900 text-white shadow-md' 
+                                        : 'bg-zinc-100 text-zinc-400 hover:bg-zinc-200'
+                                }`}
+                            >
+                                {cat === 'all' ? 'Todas' : cat === 'Madeira' ? 'Wood' : cat}
+                            </button>
+                        ))}
+                    </div>
 
-                        {store.availableFrames.map(frame => {
-                            const isSelected = store.hasFrame && store.frameProfileId === frame.id;
-                            return (
-                                <button
-                                    key={frame.id}
-                                    onClick={() => { store.setFrameProfileId(frame.id); store.setHasFrame(true); }}
-                                    onMouseEnter={() => setHoveredFrame({ id: frame.id, src: frame.profileImageUrl || frame.previewUrl || frame.textureUrl, name: frame.name })}
-                                    onMouseLeave={() => setHoveredFrame(null)}
-                                    className="flex-shrink-0 flex flex-col items-center gap-2 group/item"
-                                >
-                                    <div className={`w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all relative flex items-center justify-center bg-white ${
-                                        isSelected 
-                                            ? 'border-[#00a8e8] shadow-md shadow-blue-500/20 z-10' 
-                                            : 'border-zinc-100 hover:border-zinc-300 bg-zinc-50/30'
-                                    }`}>
-                                        {frame.profileImageUrl ? (
-                                            <img 
-                                                src={frame.profileImageUrl} 
-                                                className="w-full h-full object-cover" 
-                                                alt={frame.name} 
-                                            />
-                                        ) : (
-                                            <FrameChevron frame={frame} size={70} className="mt-[-5px]" />
-                                        )}
-                                        
-                                        {/* Profile Icon Badge */}
-                                        <div className="absolute bottom-1 right-1 w-5 h-5 bg-white/80 p-0.5 rounded-md border border-zinc-100 flex items-center justify-center overflow-hidden">
-                                            <div 
-                                                className="w-full h-full bg-zinc-400" 
-                                                style={{ clipPath: frame.profileSVG || 'none' }}
-                                            />
+                    {/* Lista de Molduras (Cards myPoster Style) */}
+                    <div className="space-y-3 px-1">
+                        {/* Opção sem moldura */}
+                        <div
+                            onClick={() => store.setHasFrame(false)}
+                            className={`
+                                group w-full flex rounded-2xl border transition-all overflow-hidden cursor-pointer h-24
+                                ${!store.hasFrame ? 'border-[#00a8e8] shadow-md shadow-blue-500/10' : 'border-zinc-100 bg-white hover:border-zinc-200'}
+                            `}
+                        >
+                            <div className="w-[45%] bg-white flex items-center justify-center border-r border-zinc-50">
+                                <X className={`w-8 h-8 ${!store.hasFrame ? 'text-[#00a8e8]' : 'text-zinc-200 group-hover:text-zinc-300'}`} />
+                            </div>
+                            <div className={`p-4 flex flex-col justify-center text-left flex-1 transition-colors ${
+                                !store.hasFrame ? 'bg-blue-50/50' : 'bg-zinc-50/30'
+                            }`}>
+                                <span className={`text-[10px] font-black uppercase tracking-widest ${!store.hasFrame ? 'text-[#00a8e8]' : 'text-zinc-400'}`}>
+                                    Sem Moldura
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Molduras filtradas */}
+                        {store.availableFrames
+                            .filter(f => selectedCategory === 'all' || f.category === selectedCategory)
+                            .map(frame => {
+                                const isSelected = store.hasFrame && store.frameProfileId === frame.id;
+                                return (
+                                    <div
+                                        key={frame.id}
+                                        onClick={() => { store.setFrameProfileId(frame.id); store.setHasFrame(true); }}
+                                        className={`
+                                            group w-full flex rounded-2xl border transition-all overflow-hidden cursor-pointer min-h-[140px]
+                                            ${isSelected ? 'border-[#00a8e8] shadow-md shadow-blue-500/10' : 'border-zinc-100 bg-white hover:border-zinc-200'}
+                                        `}
+                                    >
+                                        {/* Visual Area (Left) */}
+                                        <div className="w-[45%] p-3 bg-white flex flex-col items-center justify-between border-r border-zinc-50 relative">
+                                            {/* 3D Elbow */}
+                                            <div className="flex-1 flex items-center justify-center scale-90">
+                                                <FrameChevron frame={frame} size={80} />
+                                            </div>
+                                            
+                                            {/* Profile Preview */}
+                                            <div className="h-12 w-full flex items-center justify-center mt-1 border-t border-zinc-100 pt-2">
+                                                {frame.profileImageUrl ? (
+                                                    <img src={frame.profileImageUrl} className="max-h-full max-w-full object-contain" />
+                                                ) : (
+                                                    <div 
+                                                        className="w-8 h-8 bg-zinc-100 shadow-inner"
+                                                        style={{ clipPath: frame.profileSVG || 'none' }}
+                                                    />
+                                                )}
+                                            </div>
+
+                                            {/* Dimension Badges over profile */}
+                                            <div className="absolute bottom-1 right-1 flex flex-col items-end gap-0.5 pointer-events-none">
+                                                <span className="text-[7px] font-black bg-zinc-100/80 px-1 py-0.5 rounded text-zinc-500">{frame.frameWidth}cm W</span>
+                                                <span className="text-[7px] font-black bg-zinc-100/80 px-1 py-0.5 rounded text-zinc-500">{frame.frameDepth}cm D</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Info Area (Right) */}
+                                        <div className={`p-4 flex flex-col justify-center text-left flex-1 transition-colors ${
+                                            isSelected ? 'bg-blue-50/50' : 'bg-zinc-50/30'
+                                        }`}>
+                                            <h4 className="text-[11px] font-black text-zinc-900 uppercase tracking-tight leading-tight mb-1">
+                                                {frame.name}
+                                            </h4>
+                                            <p className="text-[10px] font-bold text-[#e91e63] mb-2">
+                                                from R$ {frame.salePrice.toFixed(2).replace('.', ',')}
+                                            </p>
+                                            {frame.features && frame.features.length > 0 && (
+                                                <ul className="space-y-1">
+                                                    {frame.features.slice(0, 2).map((feature, i) => (
+                                                        <li key={i} className="flex items-start gap-1.5 text-[8px] font-bold text-zinc-400 leading-none">
+                                                            <div className="w-1 h-1 rounded-full bg-zinc-300 mt-0.5 flex-shrink-0" />
+                                                            {feature}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            )}
                                         </div>
                                     </div>
-                                    <span className={`text-[10px] font-black uppercase tracking-widest max-w-[80px] truncate transition-colors ${isSelected ? 'text-[#00a8e8]' : 'text-zinc-400 group-hover/item:text-zinc-600'}`}>
-                                        {frame.category === 'Madeira' ? 'Wood' : frame.category}
-                                    </span>
-                                </button>
-                            );
-                        })}
+                                );
+                            })}
                     </div>
-
-                    {/* Preview ampliado — DEPOIS dos thumbnails, layout não muda ao aparecer */}
-                    <div className="mt-2 min-h-[0px]">
-                        {hoveredFrame && (
-                            <div className="rounded-2xl overflow-hidden border border-zinc-100 shadow-xl flex flex-col items-center p-4 bg-white animate-in zoom-in-95 duration-150">
-                                <img
-                                    src={hoveredFrame.src}
-                                    alt={hoveredFrame.name}
-                                    className="w-full h-48 sm:h-64 rounded-xl object-contain bg-zinc-50"
-                                />
-                                <div className="mt-4 text-center">
-                                    <p className="text-sm font-black text-zinc-900 uppercase tracking-tight leading-tight">{hoveredFrame.name}</p>
-                                    <p className="text-xs text-zinc-400 font-bold mt-1">
-                                        {store.availableFrames.find(f => f.id === hoveredFrame.id)?.frameWidth} cm largura
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
                 </section>
 
                 {/* ── Passe-Partout (só com moldura) ── */}
