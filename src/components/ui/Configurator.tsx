@@ -2,7 +2,7 @@ import { Upload, X, Scissors, ChevronRight, Info, ZoomIn } from 'lucide-react';
 import { useSimulatorStore } from '../../store/useSimulatorStore';
 import { calculatePrice } from '../../utils/calculations';
 import { ImageCropper } from './ImageCropper';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import UTIF from 'utif';
 import { SplitSettings } from './SplitSettings';
 import { FrameChevron } from './FrameChevron';
@@ -53,6 +53,31 @@ export function Configurator() {
     const [dimEdited, setDimEdited] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
+    const lastProcessedImage = useRef<string | null>(null);
+    
+    // Auto-size to 100 DPI on image upload
+    useEffect(() => {
+        if (store.imagePixels && store.originalImage && store.originalImage !== lastProcessedImage.current) {
+            const pxW = store.imagePixels.width;
+            const pxH = store.imagePixels.height;
+            const isLandscape = pxW >= pxH;
+            const longestSidePx = isLandscape ? pxW : pxH;
+            
+            // Max size for 100 DPI
+            const maxLongestSideCm = Math.round((longestSidePx * 2.54) / 100);
+            const ratio = (isLandscape ? pxH : pxW) / longestSidePx;
+            
+            const w = isLandscape ? maxLongestSideCm : Math.round(maxLongestSideCm * ratio);
+            const h = isLandscape ? Math.round(maxLongestSideCm * ratio) : maxLongestSideCm;
+            
+            store.setWidth(w);
+            store.setHeight(h);
+            setLocalWidth(String(w));
+            setLocalHeight(String(h));
+            
+            lastProcessedImage.current = store.originalImage;
+        }
+    }, [store.imagePixels, store.originalImage, store.setWidth, store.setHeight]);
 
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -362,13 +387,13 @@ export function Configurator() {
                 price={price.total}
             >
                 <div className="space-y-8">
-                    <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4">Sugestões Proporcionais</p>
-                        <div className="grid grid-cols-2 gap-3">
-                            {(() => {
-                                    // Use current image pixels or default to a standard 2:3 ratio (40x60 effectively)
-                                    const pxW = store.imagePixels?.width || 2000;
-                                    const pxH = store.imagePixels?.height || 3000;
+                    {store.imagePixels ? (
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4">Sugestões Proporcionais</p>
+                            <div className="grid grid-cols-2 gap-3">
+                                {(() => {
+                                    const pxW = store.imagePixels.width;
+                                    const pxH = store.imagePixels.height;
                                     
                                     const isLandscape = pxW >= pxH;
                                     const longestSidePx = isLandscape ? pxW : pxH;
@@ -383,7 +408,6 @@ export function Configurator() {
                                     const stepSize = maxLongestSideCm / steps;
                                     
                                     return Array.from({ length: steps }).map((_, i) => {
-                                        // Ensure the smallest size is at least 10cm or stepSize
                                         const length = Math.round((i + 1) * stepSize);
                                         const w = isLandscape ? length : Math.round(length * ratio);
                                         const h = isLandscape ? Math.round(length * ratio) : length;
@@ -422,6 +446,14 @@ export function Configurator() {
                                 })()}
                             </div>
                         </div>
+                    ) : (
+                        <div className="p-8 border-2 border-dashed border-zinc-100 rounded-2xl text-center bg-zinc-50/50">
+                            <ZoomIn className="w-8 h-8 text-zinc-300 mx-auto mb-3" />
+                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                                Carregue sua arte para ver<br />sugestões de tamanho ideais
+                            </p>
+                        </div>
+                    )}
 
                     <div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4">Ajuste Manual</p>
