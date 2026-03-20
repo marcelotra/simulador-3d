@@ -402,13 +402,10 @@ export function Frame2D() {
                                                     <img
                                                         src={userImage}
                                                         alt="Arte"
-                                                        className="absolute max-w-none"
+                                                        className="absolute inset-0 w-full h-full"
                                                         style={{
-                                                            width: `${Number(width) / seg.w * 100}%`,
-                                                            height: `${Number(height) / seg.h * 100}%`,
-                                                            left: `-${seg.imgX * (Number(width) / seg.w)}%`,
-                                                            top: `-${seg.imgY * (Number(height) / seg.h)}%`,
-                                                            objectFit: 'cover'
+                                                            objectFit: 'contain',
+                                                            objectPosition: 'center',
                                                         }}
                                                     />
                                                 ) : (
