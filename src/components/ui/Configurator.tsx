@@ -1,16 +1,13 @@
 import { Upload, X, Scissors, ChevronRight, Info, ZoomIn } from 'lucide-react';
 import { useSimulatorStore } from '../../store/useSimulatorStore';
 import { calculatePrice } from '../../utils/calculations';
-import { getSegments } from '../../utils/layout';
-import { analyzeImage } from '../../utils/imageAnalysis';
 import { ImageCropper } from './ImageCropper';
 import { useState } from 'react';
 import UTIF from 'utif';
-import { PaperModal } from './PaperModal';
-import { FrameSelectionModal } from './FrameSelectionModal';
-import { CartModal } from './CartModal';
 import { SplitSettings } from './SplitSettings';
 import { FrameChevron } from './FrameChevron';
+import { SideMenu } from './SideMenu';
+import { CartModal } from './CartModal';
 
 const GLASS_OPTIONS = [
     { id: 'none', label: 'Sem Vidro', desc: 'Sem proteção' },
@@ -46,8 +43,7 @@ export function Configurator() {
     const store = useSimulatorStore();
     const price = calculatePrice(store as any);
 
-    const [isPaperModalOpen, setIsPaperModalOpen] = useState(false);
-    const [isFrameModalOpen, setIsFrameModalOpen] = useState(false);
+    const [activeStep, setActiveStep] = useState<'none' | 'dimensions' | 'frame' | 'passepartout' | 'glass' | 'paper'>('none');
     const [isCartModalOpen, setIsCartModalOpen] = useState(false);
     const [isCropping, setIsCropping] = useState(false);
 
@@ -58,9 +54,6 @@ export function Configurator() {
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
 
-    const analysis = store.userImage && store.imagePixels
-        ? analyzeImage(store.imagePixels.width, store.imagePixels.height, store.width, store.height)
-        : null;
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -125,7 +118,8 @@ export function Configurator() {
 
     const handleFinalize = () => {
         store.addToCart(price.total);
-        setIsCartModalOpen(true);
+        // setIsCartModalOpen(true); // Temporarily disabling cart modal for direct checkout feel or fix later
+        alert("Adicionado ao carrinho com sucesso!");
     };
 
     const handleAddAnother = () => {
@@ -138,21 +132,8 @@ export function Configurator() {
     const selectedPaper = store.availablePapers.find(p => p.id === store.printType);
     const selectedFrame = store.availableFrames.find(f => f.id === store.frameProfileId);
 
-    // Calcula os segmentos para exibir o tamanho de cada peça
-    const segments = getSegments(store.width, store.height, store.splitType, store.splitColumns, store.splitGap, store.splitHeightRatio);
-    const fw = store.hasFrame ? (selectedFrame?.frameWidth ?? 0) : 0;
-    const pm = store.paperMargin ?? 0;
 
     // Remove duplicates to group similar sizes (e.g. 2 pieces of 30x40, 1 piece of 40x50)
-    const segmentSizes = segments.reduce((acc, seg) => {
-        const outW = Math.round(seg.w + (pm * 2) + (fw * 2));
-        const outH = Math.round(seg.h + (pm * 2) + (fw * 2));
-        const key = `${outW}x${outH}`;
-        if (!acc[key]) acc[key] = { w: outW, h: outH, count: 0 };
-        acc[key].count++;
-        return acc;
-    }, {} as Record<string, { w: number, h: number, count: number }>);
-    const uniqueSizes = Object.values(segmentSizes);
 
     return (
         <div className="flex flex-col h-full overflow-hidden">
@@ -190,382 +171,126 @@ export function Configurator() {
                     )}
                 </section>
 
-                {/* ── Tamanho ── */}
-                <section className="py-4">
-                    <SectionTitle step={2} title="Tamanho da Imagem" tooltip="Defina as dimensões da obra impressa. O simulador sugerirá o melhor formato sem perda de qualidade visual." />
-                    
-                    {store.imagePixels && (
-                        <div className="mb-4">
-                            <p className="text-[10px] font-bold text-zinc-500 mb-2">Sugestões Proporcionais (Sem Cortes)</p>
-                            <div className="flex flex-wrap gap-2 pb-2">
-                                {(() => {
-                                    const { width: pxW, height: pxH } = store.imagePixels;
-                                    
-                                    // Base dimension is the longest side
-                                    const isLandscape = pxW >= pxH;
-                                    const longestSidePx = isLandscape ? pxW : pxH;
-                                    const shortestSidePx = isLandscape ? pxH : pxW;
-                                    const ratio = shortestSidePx / longestSidePx;
-                                    
-                                    // Max longest side based on 100 DPI
-                                    const maxLongestSideCm = Math.floor((longestSidePx * 2.54) / 100);
-                                    
-                                    // Standard targets
-                                    const standardTargets = [20, 30, 40, 50, 60, 70, 80, 90, 100, 120, 150];
-                                    
-                                    // Filter valid targets & append Exact Max Target
-                                    let targetsLength = standardTargets.filter(t => t < maxLongestSideCm).slice(0, 7);
-                                    
-                                    if (maxLongestSideCm >= 15 && !targetsLength.includes(maxLongestSideCm)) {
-                                        targetsLength.push(maxLongestSideCm);
-                                    }
-                                    
-                                    if (targetsLength.length === 0) {
-                                        targetsLength.push(maxLongestSideCm > 0 ? maxLongestSideCm : 20);
-                                    }
-
-                                    return targetsLength.map((length, idx) => {
-                                        const w = isLandscape ? length : Math.round(length * ratio);
-                                        const h = isLandscape ? Math.round(length * ratio) : length;
-                                        
-                                        const isSelected = Math.abs(store.width - w) < 1 && Math.abs(store.height - h) < 1;
-                                        const isMax = length === maxLongestSideCm && idx === targetsLength.length - 1;
-                                        
-                                        return (
-                                            <button
-                                                key={`${w}x${h}`}
-                                                onClick={() => {
-                                                    store.setWidth(w);
-                                                    store.setHeight(h);
-                                                    setLocalWidth(String(w));
-                                                    setLocalHeight(String(h));
-                                                }}
-                                                className={`flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 border-2 rounded-xl text-xs font-bold transition-all ${
-                                                    isSelected 
-                                                        ? 'border-zinc-900 bg-zinc-900 text-white' 
-                                                        : isMax
-                                                            ? 'border-amber-400 bg-amber-50 text-amber-900 hover:bg-amber-100 hover:border-amber-500'
-                                                            : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-400'
-                                                }`}
-                                            >
-                                                <span>{w} × {h} cm</span>
-                                                {isMax && <span className="text-[8px] uppercase tracking-wider font-black opacity-70 mt-0.5">Máximo Imprimível</span>}
-                                            </button>
-                                        );
-                                    });
-                                })()}
+                {/* ── PASSO 1: Tamanho da Imagem ── */}
+                <section className="py-4 px-1">
+                    <button 
+                        onClick={() => setActiveStep('dimensions')}
+                        className="w-full flex items-center justify-between p-4 bg-zinc-50 border border-zinc-200 rounded-2xl hover:border-zinc-900 transition-all text-left group"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className="bg-white p-2 rounded-xl border border-zinc-100 shadow-sm transition-transform group-hover:scale-105">
+                                <ZoomIn className="w-5 h-5 text-zinc-400" />
+                            </div>
+                            <div>
+                                <SectionTitle step={1} title="Tamanho da Imagem" />
+                                <span className="text-lg font-black text-zinc-900 tracking-tight">{store.width} × {store.height} cm</span>
                             </div>
                         </div>
-                    )}
-
-                    <div className="bg-zinc-50 p-3 rounded-xl border border-zinc-100">
-                        <p className="text-[10px] font-bold text-zinc-500 mb-2">Tamanho Personalizado</p>
-                        <div className="flex items-stretch gap-2 mb-3">
-                            <div className="relative flex-1">
-                                <label htmlFor="custom-width" className="absolute text-[9px] font-bold text-zinc-400 top-1.5 left-3">largura</label>
-                                <input
-                                    id="custom-width"
-                                    type="number"
-                                    value={localWidth}
-                                    onChange={e => { setLocalWidth(e.target.value); setDimEdited(true); }}
-                                    className="w-full pt-5 pb-2 px-3 border-2 border-zinc-200 rounded-xl text-lg font-black text-zinc-900 focus:outline-none focus:border-zinc-900 transition-all"
-                                    title="Largura personalizada"
-                                />
-                            </div>
-                            <div className="flex items-center text-zinc-300 font-bold text-sm pb-1">×</div>
-                            <div className="relative flex-1">
-                                <label htmlFor="custom-height" className="absolute text-[9px] font-bold text-zinc-400 top-1.5 left-3">altura</label>
-                                <input
-                                    id="custom-height"
-                                    type="number"
-                                    value={localHeight}
-                                    onChange={e => { setLocalHeight(e.target.value); setDimEdited(true); }}
-                                    className="w-full pt-5 pb-2 px-3 border-2 border-zinc-200 rounded-xl text-lg font-black text-zinc-900 focus:outline-none focus:border-zinc-900 transition-all"
-                                    title="Altura personalizada"
-                                />
-                            </div>
-                            <button
-                                onClick={handleConfirmDimensions}
-                                className={`px-3 rounded-xl text-xs font-black uppercase tracking-tight transition-all ${
-                                    dimEdited
-                                        ? 'bg-zinc-900 text-white hover:bg-zinc-700'
-                                        : 'bg-zinc-200 text-zinc-400'
-                                }`}
-                            >
-                                OK
-                            </button>
-                        </div>
-                        
-                        {store.userImage && analysis && !analysis.isRatioCompatible && (
-                            <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded-lg flex flex-col gap-2">
-                                <p className="text-[10px] text-amber-700 font-medium leading-tight">
-                                    A proporção da imagem é diferente da medida selecionada. A imagem será distorcida se não for recortada.
-                                </p>
-                                <button
-                                    onClick={() => setIsCropping(true)}
-                                    className="w-full py-1.5 bg-amber-100 font-bold text-[10px] text-amber-800 rounded uppercase tracking-tight hover:bg-amber-200 transition-colors flex items-center justify-center gap-1"
-                                >
-                                    <Scissors className="w-3 h-3" />
-                                    Ajustar Enquadramento / Recortar
-                                </button>
-                            </div>
-                        )}
-
-                        <div className="flex items-start gap-2">
-                            <Info className="w-3.5 h-3.5 text-zinc-400 mt-0.5 flex-shrink-0" />
-                            <div className="flex-1">
-                                {store.splitType === 'single' ? (
-                                    <p className="text-[10px] text-zinc-500 leading-tight">
-                                        Tamanho final externo aproximado do quadro:<br/>
-                                        <b className="text-zinc-700">{(store.width + fw * 2).toFixed(0)} × {(store.height + fw * 2).toFixed(0)} cm</b>
-                                    </p>
-                                ) : (
-                                    <div className="space-y-1">
-                                        <p className="text-[10px] text-zinc-500 leading-tight">Tamanho final externo individual dos quadros da composição:</p>
-                                        <ul className="pl-1">
-                                            {uniqueSizes.map((size, idx) => (
-                                                <li key={idx} className="text-[11px] font-bold text-zinc-700">
-                                                    {size.count}x peça{size.count > 1 ? 's' : ''} de {size.w} × {size.h} cm
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+                        <ChevronRight className="w-5 h-5 text-zinc-300 group-hover:text-zinc-900 transition-colors" />
+                    </button>
                 </section>
 
-                {/* ── Divisões ── */}
+                {/* ── Divisões (Quick Setting) ── */}
                 <SplitSettings />
 
-                {/* ── Moldura ── */}
-                <section className="py-6">
-                    <div className="flex items-start justify-between mb-4 px-1">
-                        <div>
-                            <SectionTitle step={4} title="Escolha sua Moldura" tooltip="A moldura define o estilo final (Clássico, Moderno, Rústico) e protege todo o conjunto." />
-                            <p className="text-xl font-black text-zinc-900 mt-1 tracking-tight">
-                                {store.hasFrame ? selectedFrame?.name ?? 'Selecione' : 'Sem Moldura'}
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Categorias */}
-                    <div className="flex gap-2 overflow-x-auto pb-4 px-1 mb-2" style={{ scrollbarWidth: 'none' }}>
-                        {['all', 'Madeira', 'Preta', 'Branca', 'Dourada', 'Prata'].map(cat => (
-                            <button
-                                key={cat}
-                                onClick={() => setSelectedCategory(cat)}
-                                className={`flex-shrink-0 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
-                                    selectedCategory === cat 
-                                        ? 'bg-zinc-900 text-white shadow-md' 
-                                        : 'bg-zinc-100 text-zinc-400 hover:bg-zinc-200'
-                                }`}
-                            >
-                                {cat === 'all' ? 'Todas' : cat === 'Madeira' ? 'Wood' : cat}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Lista de Molduras (Cards myPoster Style) */}
-                    <div className="space-y-3 px-1">
-                        {/* Opção sem moldura */}
-                        <div
-                            onClick={() => store.setHasFrame(false)}
-                            className={`
-                                group w-full flex rounded-2xl border transition-all overflow-hidden cursor-pointer h-24
-                                ${!store.hasFrame ? 'border-[#00a8e8] shadow-md shadow-blue-500/10' : 'border-zinc-100 bg-white hover:border-zinc-200'}
-                            `}
-                        >
-                            <div className="w-[45%] bg-white flex items-center justify-center border-r border-zinc-50">
-                                <X className={`w-8 h-8 ${!store.hasFrame ? 'text-[#00a8e8]' : 'text-zinc-200 group-hover:text-zinc-300'}`} />
+                {/* ── PASSO 2: Modalidade/Moldura ── */}
+                <section className="py-4 px-1">
+                    <button 
+                        onClick={() => setActiveStep('frame')}
+                        className="w-full flex items-center justify-between p-4 bg-zinc-50 border border-zinc-200 rounded-2xl hover:border-zinc-900 transition-all text-left group"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className="bg-white p-1 rounded-xl border border-zinc-100 shadow-sm transition-transform group-hover:scale-105 overflow-hidden w-12 h-12 flex items-center justify-center">
+                                {store.hasFrame && selectedFrame ? (
+                                    selectedFrame.previewUrl ? (
+                                        <img src={selectedFrame.previewUrl} alt={selectedFrame.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <FrameChevron frame={selectedFrame} size={40} />
+                                    )
+                                ) : (
+                                    <X className="w-6 h-6 text-zinc-300" />
+                                )}
                             </div>
-                            <div className={`p-4 flex flex-col justify-center text-left flex-1 transition-colors ${
-                                !store.hasFrame ? 'bg-blue-50/50' : 'bg-zinc-50/30'
-                            }`}>
-                                <span className={`text-[10px] font-black uppercase tracking-widest ${!store.hasFrame ? 'text-[#00a8e8]' : 'text-zinc-400'}`}>
-                                    Sem Moldura
+                            <div>
+                                <SectionTitle step={2} title="Moldura" />
+                                <span className="text-lg font-black text-zinc-900 tracking-tight">
+                                    {store.hasFrame ? selectedFrame?.name ?? 'Selecionar' : 'Sem Moldura'}
                                 </span>
                             </div>
                         </div>
-
-                        {/* Molduras filtradas */}
-                        {store.availableFrames
-                            .filter(f => selectedCategory === 'all' || f.category === selectedCategory)
-                            .map(frame => {
-                                const isSelected = store.hasFrame && store.frameProfileId === frame.id;
-                                return (
-                                    <div
-                                        key={frame.id}
-                                        onClick={() => { store.setFrameProfileId(frame.id); store.setHasFrame(true); }}
-                                        className={`
-                                            group w-full flex rounded-2xl border transition-all overflow-hidden cursor-pointer min-h-[140px]
-                                            ${isSelected ? 'border-[#00a8e8] shadow-md shadow-blue-500/10' : 'border-zinc-100 bg-white hover:border-zinc-200'}
-                                        `}
-                                    >
-                                        {/* Visual Area (Left) */}
-                                        <div className="w-[45%] p-2 bg-white flex flex-col items-center justify-between border-r border-zinc-50 relative">
-                                            {/* Foto Principal (Perfil Real ou 3D Elbow) */}
-                                            <div className="flex-1 w-full flex items-center justify-center overflow-hidden rounded-lg relative group/img">
-                                                {frame.previewUrl ? (
-                                                    <>
-                                                        <img 
-                                                            src={frame.previewUrl} 
-                                                            className="w-full h-full object-cover rounded-lg" 
-                                                            alt="Perfil Real"
-                                                        />
-                                                        <button 
-                                                            onClick={(e) => { e.stopPropagation(); setEnlargedImage(frame.previewUrl!); }}
-                                                            className="absolute top-1 right-1 p-1.5 bg-white/90 rounded-full shadow-sm opacity-0 group-hover/img:opacity-100 transition-opacity hover:bg-white"
-                                                            title="Ampliar Foto"
-                                                        >
-                                                            <ZoomIn className="w-3.5 h-3.5 text-zinc-900" />
-                                                        </button>
-                                                    </>
-                                                ) : (
-                                                    <div className="scale-90">
-                                                        <FrameChevron frame={frame} size={80} />
-                                                    </div>
-                                                )}
-                                            </div>
-                                            
-                                            {/* Desenho Técnico (Foto ou SVG) */}
-                                            <div className="h-14 w-full flex items-center justify-center mt-2 border-t border-zinc-100 pt-2 bg-zinc-50/20 rounded-b-lg relative group/tech">
-                                                {frame.profileImageUrl ? (
-                                                    <>
-                                                        <img src={frame.profileImageUrl} className="max-h-full max-w-full object-contain mix-blend-multiply" alt="Perfil Técnico" />
-                                                        <button 
-                                                            onClick={(e) => { e.stopPropagation(); setEnlargedImage(frame.profileImageUrl!); }}
-                                                            className="absolute top-1 right-1 p-1 bg-white/90 rounded-full shadow-sm opacity-0 group-hover/tech:opacity-100 transition-opacity hover:bg-white"
-                                                            title="Ampliar Desenho"
-                                                        >
-                                                            <ZoomIn className="w-2.5 h-2.5 text-zinc-900" />
-                                                        </button>
-                                                    </>
-                                                ) : (
-                                                    <div 
-                                                        className="w-10 h-10 bg-zinc-200 shadow-inner opacity-50"
-                                                        style={{ clipPath: frame.profileSVG || 'none' }}
-                                                    />
-                                                )}
-                                            </div>
-
-                                            {/* Dimension Badges over profile */}
-                                            <div className="absolute bottom-1 right-1 flex flex-col items-end gap-0.5 pointer-events-none">
-                                                <span className="text-[7px] font-black bg-zinc-100/80 px-1 py-0.5 rounded text-zinc-500">{frame.frameWidth}cm W</span>
-                                                <span className="text-[7px] font-black bg-zinc-100/80 px-1 py-0.5 rounded text-zinc-500">{frame.frameDepth}cm D</span>
-                                            </div>
-                                        </div>
-
-                                        {/* Info Area (Right) */}
-                                        <div className={`p-4 flex flex-col justify-center text-left flex-1 transition-colors ${
-                                            isSelected ? 'bg-blue-50/50' : 'bg-zinc-50/30'
-                                        }`}>
-                                            <h4 className="text-[11px] font-black text-zinc-900 uppercase tracking-tight leading-tight mb-2">
-                                                {frame.name}
-                                            </h4>
-                                            {frame.features && frame.features.length > 0 && (
-                                                <ul className="space-y-1">
-                                                    {frame.features.slice(0, 2).map((feature, i) => (
-                                                        <li key={i} className="flex items-start gap-1.5 text-[8px] font-bold text-zinc-400 leading-none">
-                                                            <div className="w-1 h-1 rounded-full bg-zinc-300 mt-0.5 flex-shrink-0" />
-                                                            {feature}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                    </div>
+                        <ChevronRight className="w-5 h-5 text-zinc-300 group-hover:text-zinc-900 transition-colors" />
+                    </button>
                 </section>
 
-                {/* ── Passe-Partout (só com moldura) ── */}
+                {/* ── PASSO 3: Passe-Partout ── */}
                 {store.hasFrame && (
-                    <section className="py-4">
-                        <div className="flex items-start justify-between mb-3">
-                            <div>
-                                <SectionTitle step={5} title="Passe-Partout" tooltip="O Passe-Partout (lê-se 'paspatur') é uma margem elegante que fica entre a arte e a moldura. Ele destaca a obra e proporciona um acabamento 'Fine Art' padrão de galeria." />
-                                <p className="text-sm font-bold text-zinc-900 mt-1 -translate-y-2">
-                                    {store.passepartoutWidth > 0 ? `${store.passepartoutWidth} cm` : 'Nenhum'}
-                                </p>
-                            </div>
-                            {store.passepartoutWidth > 0 && (
-                                <div className="flex gap-1.5 mt-0.5">
-                                    {PASSE_COLORS.map(c => (
-                                        <button
-                                            key={c}
-                                            onClick={() => store.setPassepartoutColor(c)}
-                                            className={`w-6 h-6 rounded-full border-2 transition-all ${store.passepartoutColor === c ? 'border-zinc-900 scale-110' : 'border-zinc-200 hover:border-zinc-400'}`}
-                                            style={{ backgroundColor: c }}
-                                        />
-                                    ))}
+                    <section className="py-4 px-1">
+                        <button 
+                            onClick={() => setActiveStep('passepartout')}
+                            className="w-full flex items-center justify-between p-4 bg-zinc-50 border border-zinc-200 rounded-2xl hover:border-zinc-900 transition-all text-left group"
+                        >
+                            <div className="flex items-center gap-4">
+                                <div 
+                                    className="w-12 h-12 rounded-xl border border-zinc-100 shadow-sm transition-transform group-hover:scale-105 flex items-center justify-center font-black text-[10px] text-zinc-400"
+                                    style={{ backgroundColor: store.passepartoutWidth > 0 ? store.passepartoutColor : '#f4f4f5' }}
+                                >
+                                    {store.passepartoutWidth > 0 ? `${store.passepartoutWidth}cm` : 'ZERO'}
                                 </div>
-                            )}
-                        </div>
-                        <label htmlFor="passepartout-range" className="sr-only">Largura do Passe-Partout</label>
-                        <input
-                            id="passepartout-range"
-                            type="range" min={0} max={10} step={0.5}
-                            value={store.passepartoutWidth}
-                            onChange={e => store.setPassepartoutWidth(Number(e.target.value))}
-                            className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-zinc-900 bg-zinc-200"
-                            title="Ajustar largura do Passe-Partout"
-                        />
-                        <div className="flex justify-between text-[9px] text-zinc-400 font-bold mt-1">
-                            <span>0 cm</span><span>10 cm</span>
-                        </div>
+                                <div>
+                                    <SectionTitle step={3} title="Passe-Partout" />
+                                    <span className="text-lg font-black text-zinc-900 tracking-tight">
+                                        {store.passepartoutWidth > 0 ? `${store.passepartoutWidth} cm - Margem` : 'Sem Passe-Partout'}
+                                    </span>
+                                </div>
+                            </div>
+                            <ChevronRight className="w-5 h-5 text-zinc-300 group-hover:text-zinc-900 transition-colors" />
+                        </button>
                     </section>
                 )}
 
-                {/* ── Vidro (só com moldura) ── */}
+                {/* ── PASSO 4: Vidro ── */}
                 {store.hasFrame && (
-                    <section className="py-4">
-                        <SectionTitle step={6} title="Proteção (Vidro)" tooltip="Escolha o vidro de proteção. O Vidro Antirreflexo (ArtGlass) é invisível e não reflete luzes do ambiente, garantindo 100% de nitidez na visualização." />
-                        <div className="grid grid-cols-3 gap-2">
-                            {GLASS_OPTIONS.map(g => {
-                                const isSelected = store.glassType === g.id;
-                                return (
-                                    <button
-                                        key={g.id}
-                                        onClick={() => store.setGlassType(g.id as 'none' | 'standard' | 'anti-reflective')}
-                                        className={`p-3 rounded-xl border-2 text-left transition-all ${
-                                            isSelected
-                                                ? 'border-zinc-900 bg-zinc-900 text-white'
-                                                : 'border-zinc-200 hover:border-zinc-400 text-zinc-900'
-                                        }`}
-                                        title={`Selecionar proteção: ${g.label}`}
-                                    >
-                                        <span className="font-black text-[10px] uppercase tracking-tight block">{g.label}</span>
-                                        <span className={`text-[9px] block mt-0.5 ${isSelected ? 'text-zinc-400' : 'text-zinc-400'}`}>{g.desc}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
+                    <section className="py-4 px-1">
+                        <button 
+                            onClick={() => setActiveStep('glass')}
+                            className="w-full flex items-center justify-between p-4 bg-zinc-50 border border-zinc-200 rounded-2xl hover:border-zinc-900 transition-all text-left group"
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className="bg-white p-2 rounded-xl border border-zinc-100 shadow-sm transition-transform group-hover:scale-105 w-12 h-12 flex items-center justify-center">
+                                    <Info className="w-5 h-5 text-zinc-400" />
+                                </div>
+                                <div>
+                                    <SectionTitle step={4} title="Proteção (Vidro)" />
+                                    <span className="text-lg font-black text-zinc-900 tracking-tight">
+                                        {GLASS_OPTIONS.find(g => g.id === store.glassType)?.label ?? 'Sem Vidro'}
+                                    </span>
+                                </div>
+                            </div>
+                            <ChevronRight className="w-5 h-5 text-zinc-300 group-hover:text-zinc-900 transition-colors" />
+                        </button>
                     </section>
                 )}
 
-                {/* ── Impressão ── */}
-                <section className="py-4">
-                    <SectionTitle step={store.hasFrame ? 7 : 5} title="Impressão" tooltip="Escolha o tipo de papel fine art onde a sua obra será impressa. Cada papel possui texturas e propriedades únicas." />
+                {/* ── PASSO 5: Impressão ── */}
+                <section className="py-4 px-1">
                     <button
-                        onClick={() => setIsPaperModalOpen(true)}
-                        className="w-full flex items-center justify-between p-4 bg-zinc-50 border border-zinc-200 rounded-xl hover:border-zinc-900 transition-all text-left group"
-                        title="Escolher tipo de papel"
+                        onClick={() => setActiveStep('paper')}
+                        className="w-full flex items-center justify-between p-4 bg-zinc-50 border border-zinc-200 rounded-2xl hover:border-zinc-900 transition-all text-left group"
                     >
-                        <div className="flex items-center gap-3">
-                            {selectedPaper?.imageUrl && (
-                                <div className="w-10 h-10 rounded-lg overflow-hidden bg-zinc-200 flex-shrink-0">
-                                    <img src={selectedPaper.imageUrl} className="w-full h-full object-cover" alt={selectedPaper.name} />
-                                </div>
-                            )}
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl overflow-hidden border border-zinc-100 shadow-sm transition-transform group-hover:scale-105 bg-white flex items-center justify-center">
+                                {selectedPaper?.imageUrl ? (
+                                    <img src={selectedPaper.imageUrl} alt={selectedPaper.name} className="w-full h-full object-cover" />
+                                ) : (
+                                    <Upload className="w-5 h-5 text-zinc-300" />
+                                )}
+                            </div>
                             <div>
-                                <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block">Papel Selecionado</span>
-                                <span className="text-xs font-bold text-zinc-900">{selectedPaper?.name ?? '—'}</span>
+                                <SectionTitle step={store.hasFrame ? 5 : 2} title="Impressão" />
+                                <span className="text-lg font-black text-zinc-900 tracking-tight">{selectedPaper?.name ?? 'Selecionar Papel'}</span>
                             </div>
                         </div>
-                        <ChevronRight className="w-4 h-4 text-zinc-300 group-hover:text-zinc-900 transition-colors" />
+                        <ChevronRight className="w-5 h-5 text-zinc-300 group-hover:text-zinc-900 transition-colors" />
                     </button>
                 </section>
 
@@ -596,9 +321,293 @@ export function Configurator() {
                 </button>
             </div>
 
-            {/* ── Modals ── */}
-            <PaperModal isOpen={isPaperModalOpen} onClose={() => setIsPaperModalOpen(false)} />
-            <FrameSelectionModal isOpen={isFrameModalOpen} onClose={() => setIsFrameModalOpen(false)} />
+            {/* ── SIDE MENUS ── */}
+            
+            {/* 1. Dimensões */}
+            <SideMenu 
+                isOpen={activeStep === 'dimensions'} 
+                onClose={() => setActiveStep('none')} 
+                title="TAMANHO DA IMAGEM"
+                price={price.total}
+            >
+                <div className="space-y-8">
+                    {store.imagePixels && (
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4">Sugestões Proporcionais</p>
+                            <div className="grid grid-cols-2 gap-3">
+                                {(() => {
+                                    const { width: pxW, height: pxH } = store.imagePixels;
+                                    const isLandscape = pxW >= pxH;
+                                    const longestSidePx = isLandscape ? pxW : pxH;
+                                    const shortestSidePx = isLandscape ? pxH : pxW;
+                                    const ratio = shortestSidePx / longestSidePx;
+                                    const maxLongestSideCm = Math.floor((longestSidePx * 2.54) / 100);
+                                    const standardTargets = [20, 30, 40, 50, 60, 75, 90, 100, 120];
+                                    let targetsLength = standardTargets.filter(t => t <= maxLongestSideCm);
+                                    if (targetsLength.length === 0) targetsLength.push(20);
+                                    
+                                    return targetsLength.map((length) => {
+                                        const w = isLandscape ? length : Math.round(length * ratio);
+                                        const h = isLandscape ? Math.round(length * ratio) : length;
+                                        const isSelected = Math.abs(store.width - w) < 1 && Math.abs(store.height - h) < 1;
+                                        return (
+                                            <button
+                                                key={`${w}x${h}`}
+                                                onClick={() => {
+                                                    store.setWidth(w);
+                                                    store.setHeight(h);
+                                                    setLocalWidth(String(w));
+                                                    setLocalHeight(String(h));
+                                                }}
+                                                className={`p-4 border-2 rounded-2xl text-center transition-all ${
+                                                    isSelected ? 'border-zinc-900 bg-zinc-900 text-white shadow-lg' : 'border-zinc-100 bg-zinc-50 hover:border-zinc-200'
+                                                }`}
+                                            >
+                                                <span className="text-sm font-black block">{w} × {h}</span>
+                                                <span className="text-[9px] uppercase tracking-widest opacity-60">cm</span>
+                                            </button>
+                                        );
+                                    });
+                                })()}
+                            </div>
+                        </div>
+                    )}
+
+                    <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4">Ajuste Manual</p>
+                        <div className="flex items-center gap-3">
+                            <div className="flex-1 space-y-1">
+                                <label className="text-[9px] font-black uppercase text-zinc-400 ml-1">Largura</label>
+                                <input
+                                    type="number"
+                                    value={localWidth}
+                                    title="Largura da imagem"
+                                    onChange={e => { setLocalWidth(e.target.value); setDimEdited(true); }}
+                                    className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-black text-xl focus:border-zinc-900 outline-none transition-all"
+                                />
+                            </div>
+                            <div className="text-zinc-200 font-bold mt-6">×</div>
+                            <div className="flex-1 space-y-1">
+                                <label className="text-[9px] font-black uppercase text-zinc-400 ml-1">Altura</label>
+                                <input
+                                    type="number"
+                                    value={localHeight}
+                                    title="Altura da imagem"
+                                    onChange={e => { setLocalHeight(e.target.value); setDimEdited(true); }}
+                                    className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-2xl font-black text-xl focus:border-zinc-900 outline-none transition-all"
+                                />
+                            </div>
+                        </div>
+                        {dimEdited && (
+                            <button 
+                                onClick={handleConfirmDimensions}
+                                className="w-full mt-4 bg-zinc-900 text-white font-black py-4 rounded-2xl shadow-xl active:scale-95 transition-all text-xs uppercase tracking-widest"
+                            >
+                                Aplicar Medidas
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </SideMenu>
+
+            {/* 2. Moldura */}
+            <SideMenu 
+                isOpen={activeStep === 'frame'} 
+                onClose={() => setActiveStep('none')} 
+                title="ESCOLHA SUA MOLDURA"
+                price={price.total}
+            >
+                <div className="space-y-6">
+                    <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-none">
+                        {['all', 'Madeira', 'Preta', 'Branca', 'Dourada', 'Prata'].map(cat => (
+                            <button
+                                key={cat}
+                                onClick={() => setSelectedCategory(cat)}
+                                className={`flex-shrink-0 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+                                    selectedCategory === cat ? 'bg-zinc-900 text-white shadow-lg' : 'bg-zinc-100 text-zinc-400 hover:bg-zinc-200'
+                                }`}
+                            >
+                                {cat === 'all' ? 'Todas' : cat}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="space-y-3">
+                        <button
+                            onClick={() => { store.setHasFrame(false); setActiveStep('none'); }}
+                            className={`w-full flex p-4 rounded-2xl border-2 transition-all ${!store.hasFrame ? 'border-zinc-900 bg-zinc-900 text-white shadow-lg' : 'border-zinc-100 hover:border-zinc-200'}`}
+                        >
+                            <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center border border-white/20">
+                                <X className="w-6 h-6" />
+                            </div>
+                            <div className="flex-1 text-left ml-4 flex flex-col justify-center">
+                                <span className="text-xs font-black uppercase tracking-widest">Sem Moldura</span>
+                            </div>
+                        </button>
+
+                        {store.availableFrames
+                            .filter(f => selectedCategory === 'all' || f.category === selectedCategory)
+                            .map(frame => {
+                                const isSelected = store.hasFrame && store.frameProfileId === frame.id;
+                                return (
+                                    <button
+                                        key={frame.id}
+                                        onClick={() => { store.setFrameProfileId(frame.id); store.setHasFrame(true); }}
+                                        className={`w-full flex p-4 rounded-2xl border-2 transition-all group ${
+                                            isSelected ? 'border-zinc-900 bg-zinc-900 text-white shadow-lg' : 'border-zinc-100 hover:border-zinc-200 bg-white'
+                                        }`}
+                                    >
+                                        <div className="w-16 h-16 rounded-xl overflow-hidden bg-zinc-50 border border-zinc-100 flex items-center justify-center">
+                                            {frame.previewUrl ? (
+                                                <img src={frame.previewUrl} alt={frame.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <FrameChevron frame={frame} size={50} />
+                                            )}
+                                        </div>
+                                        <div className="flex-1 text-left ml-4 flex flex-col justify-center">
+                                            <span className="text-xs font-black uppercase tracking-tight mb-1">{frame.name}</span>
+                                            <span className={`text-[10px] font-bold ${isSelected ? 'text-zinc-400' : 'text-zinc-400'}`}>
+                                                {frame.frameWidth}cm largura • {frame.category}
+                                            </span>
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                    </div>
+                </div>
+            </SideMenu>
+
+            {/* 3. Passe-Partout */}
+            <SideMenu 
+                isOpen={activeStep === 'passepartout'} 
+                onClose={() => setActiveStep('none')} 
+                title="PASSE-PARTOUT"
+                price={price.total}
+            >
+                <div className="space-y-10 pt-4">
+                    <div className="text-center">
+                        <span className="text-5xl font-black text-zinc-900 tracking-tighter">
+                            {store.passepartoutWidth}
+                        </span>
+                        <span className="text-lg font-black text-zinc-400 uppercase tracking-widest ml-2">cm</span>
+                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mt-2">Largura da Margem</p>
+                    </div>
+
+                    <div className="px-2">
+                        <input
+                            type="range" min={0} max={10} step={0.5}
+                            title="Largura do Passe-Partout"
+                            value={store.passepartoutWidth}
+                            onChange={e => store.setPassepartoutWidth(Number(e.target.value))}
+                            className="w-full h-3 bg-zinc-100 rounded-full appearance-none cursor-pointer accent-zinc-900"
+                        />
+                        <div className="flex justify-between mt-4">
+                            {[0, 2.5, 5, 7.5, 10].map(v => (
+                                <span key={v} className="text-[10px] font-black text-zinc-300">{v}cm</span>
+                            ))}
+                        </div>
+                    </div>
+
+                    {store.passepartoutWidth > 0 && (
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4 text-center">Cor do Cartão</p>
+                            <div className="flex justify-center gap-4">
+                                {PASSE_COLORS.map(c => (
+                                    <button
+                                        key={c}
+                                        title={`Cor ${c}`}
+                                        onClick={() => store.setPassepartoutColor(c)}
+                                        className={`w-12 h-12 rounded-2xl border-4 transition-all ${store.passepartoutColor === c ? 'border-zinc-900 scale-110 shadow-lg' : 'border-zinc-50 shadow-sm hover:scale-105'}`}
+                                        style={{ backgroundColor: c }}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100">
+                        <div className="flex items-center gap-3 mb-2">
+                            <Info className="w-5 h-5 text-amber-500" />
+                            <h5 className="text-[10px] font-black uppercase tracking-widest text-amber-700">Dica Fine Art</h5>
+                        </div>
+                        <p className="text-xs font-bold text-amber-900/70 leading-relaxed">
+                            O Passe-partout de 5cm é o padrão mais equilibrado para obras de arte, criando um respiro que valoriza a imagem e protege o papel do contato direto com o vidro.
+                        </p>
+                    </div>
+                </div>
+            </SideMenu>
+
+            {/* 4. Vidro */}
+            <SideMenu 
+                isOpen={activeStep === 'glass'} 
+                onClose={() => setActiveStep('none')} 
+                title="PROTEÇÃO (VIDRO)"
+                price={price.total}
+            >
+                <div className="space-y-4 pt-2">
+                    {GLASS_OPTIONS.map(g => {
+                        const isSelected = store.glassType === g.id;
+                        return (
+                            <button
+                                key={g.id}
+                                onClick={() => { store.setGlassType(g.id as any); setActiveStep('none'); }}
+                                className={`w-full p-6 rounded-3xl border-2 text-left transition-all group ${
+                                    isSelected ? 'border-zinc-900 bg-zinc-900 text-white shadow-xl' : 'border-zinc-100 bg-zinc-50 hover:border-zinc-200'
+                                }`}
+                            >
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="font-black text-sm uppercase tracking-widest">{g.label}</span>
+                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'border-zinc-600 bg-zinc-800' : 'border-zinc-200 bg-white'}`}>
+                                        {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
+                                    </div>
+                                </div>
+                                <span className={`text-xs font-bold block ${isSelected ? 'text-zinc-400' : 'text-zinc-500'}`}>{g.desc}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </SideMenu>
+
+            {/* 5. Papel */}
+            <SideMenu 
+                isOpen={activeStep === 'paper'} 
+                onClose={() => setActiveStep('none')} 
+                title="PAPEL DE IMPRESSÃO"
+                price={price.total}
+            >
+                <div className="space-y-4 pt-2">
+                    {store.availablePapers.map(paper => {
+                        const isSelected = store.printType === paper.id;
+                        return (
+                            <button
+                                key={paper.id}
+                                onClick={() => { store.setPrintType(paper.id); setActiveStep('none'); }}
+                                className={`w-full flex p-4 rounded-3xl border-2 transition-all ${
+                                    isSelected ? 'border-zinc-900 bg-zinc-900 text-white shadow-xl' : 'border-zinc-100 bg-white hover:border-zinc-200'
+                                }`}
+                            >
+                                <div className="w-20 h-20 rounded-2xl overflow-hidden bg-zinc-100 border border-zinc-100 flex-shrink-0">
+                                    {paper.imageUrl ? (
+                                        <img src={paper.imageUrl} alt={paper.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-zinc-50 text-zinc-300">
+                                            <Info className="w-6 h-6" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex-1 text-left ml-4 flex flex-col justify-center">
+                                    <span className="text-sm font-black uppercase tracking-tight mb-1">{paper.name}</span>
+                                    <span className={`text-[10px] font-bold line-clamp-2 leading-tight ${isSelected ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                                        {paper.description}
+                                    </span>
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
+            </SideMenu>
+
+            {/* ── Modals Originais ── */}
             <CartModal
                 isOpen={isCartModalOpen}
                 onClose={() => setIsCartModalOpen(false)}
