@@ -111,9 +111,40 @@ export function Configurator() {
     const handleConfirmDimensions = () => {
         const w = parseFloat(localWidth);
         const h = parseFloat(localHeight);
-        if (w > 0) store.setWidth(w);
-        if (h > 0) store.setHeight(h);
-        setDimEdited(false);
+        
+        if (w > 0 && h > 0) {
+            // Check if aspect ratio matches current image
+            if (store.imagePixels) {
+                const currentRatio = store.imagePixels.width / store.imagePixels.height;
+                const newRatio = w / h;
+                const ratioDiff = Math.abs(currentRatio - newRatio) / currentRatio;
+
+                if (ratioDiff > 0.02) {
+                    // Ratio mismatch - trigger cropper first
+                    store.setWidth(w);
+                    store.setHeight(h);
+                    setIsCropping(true);
+                    setDimEdited(false);
+                    return;
+                }
+            } else {
+                // No imagePixels yet (placeholder) - if ratio changed significantly from 40/60
+                const currentRatio = 40 / 60;
+                const newRatio = w / h;
+                const ratioDiff = Math.abs(currentRatio - newRatio) / currentRatio;
+                if (ratioDiff > 0.02) {
+                    store.setWidth(w);
+                    store.setHeight(h);
+                    setIsCropping(true);
+                    setDimEdited(false);
+                    return;
+                }
+            }
+            
+            store.setWidth(w);
+            store.setHeight(h);
+            setDimEdited(false);
+        }
     };
 
     const handleFinalize = () => {
@@ -331,47 +362,63 @@ export function Configurator() {
                 price={price.total}
             >
                 <div className="space-y-8">
-                    {store.imagePixels && (
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4">Sugestões Proporcionais</p>
-                            <div className="grid grid-cols-2 gap-3">
-                                {(() => {
-                                    const { width: pxW, height: pxH } = store.imagePixels;
+                    <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4">Sugestões Proporcionais</p>
+                        <div className="grid grid-cols-2 gap-3">
+                            {(() => {
+                                    // Use current image pixels or default to a standard 2:3 ratio (40x60 effectively)
+                                    const pxW = store.imagePixels?.width || 2000;
+                                    const pxH = store.imagePixels?.height || 3000;
+                                    
                                     const isLandscape = pxW >= pxH;
                                     const longestSidePx = isLandscape ? pxW : pxH;
                                     const shortestSidePx = isLandscape ? pxH : pxW;
                                     const ratio = shortestSidePx / longestSidePx;
-                                    const maxLongestSideCm = Math.floor((longestSidePx * 2.54) / 100);
-                                    const standardTargets = [20, 30, 40, 50, 60, 75, 90, 100, 120];
-                                    let targetsLength = standardTargets.filter(t => t <= maxLongestSideCm);
-                                    if (targetsLength.length === 0) targetsLength.push(20);
                                     
-                                    return targetsLength.map((length) => {
+                                    // Max size for 100 DPI
+                                    const maxLongestSideCm = (longestSidePx * 2.54) / 100;
+                                    
+                                    // Start from 20cm or 10cm if max is small
+                                    const startLongestSideCm = maxLongestSideCm > 20 ? 20 : 10;
+                                    
+                                    // Generate exactly 8 steps
+                                    const steps = 8;
+                                    const range = maxLongestSideCm - startLongestSideCm;
+                                    const stepSize = range / (steps - 1);
+                                    
+                                    return Array.from({ length: steps }).map((_, i) => {
+                                        const length = Math.round(startLongestSideCm + (i * stepSize));
                                         const w = isLandscape ? length : Math.round(length * ratio);
                                         const h = isLandscape ? Math.round(length * ratio) : length;
                                         const isSelected = Math.abs(store.width - w) < 1 && Math.abs(store.height - h) < 1;
+                                        const isLimit = i === steps - 1;
+                                        
                                         return (
                                             <button
-                                                key={`${w}x${h}`}
+                                                key={`${w}x${h}-${i}`}
                                                 onClick={() => {
                                                     store.setWidth(w);
                                                     store.setHeight(h);
                                                     setLocalWidth(String(w));
                                                     setLocalHeight(String(h));
                                                 }}
-                                                className={`p-4 border-2 rounded-2xl text-center transition-all ${
+                                                className={`p-4 border-2 rounded-2xl text-center transition-all relative overflow-hidden ${
                                                     isSelected ? 'border-zinc-900 bg-zinc-900 text-white shadow-lg' : 'border-zinc-100 bg-zinc-50 hover:border-zinc-200'
                                                 }`}
                                             >
                                                 <span className="text-sm font-black block">{w} × {h}</span>
                                                 <span className="text-[9px] uppercase tracking-widest opacity-60">cm</span>
+                                                {isLimit && (
+                                                    <div className="absolute top-0 right-0 bg-amber-500 text-[8px] font-black px-1.5 py-0.5 rounded-bl shadow-sm text-white uppercase tracking-tighter">
+                                                        Max Qualidade
+                                                    </div>
+                                                )}
                                             </button>
                                         );
                                     });
                                 })()}
                             </div>
                         </div>
-                    )}
 
                     <div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4">Ajuste Manual</p>
@@ -613,9 +660,9 @@ export function Configurator() {
                 onClose={() => setIsCartModalOpen(false)}
                 onAddAnother={handleAddAnother}
             />
-            {isCropping && store.originalImage && (
+            {isCropping && (
                 <ImageCropper
-                    imageUrl={store.originalImage}
+                    imageUrl={store.originalImage || 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=800&q=80'}
                     targetAspectRatio={store.width / store.height}
                     onCrop={handleCropComplete}
                     onClose={() => setIsCropping(false)}
