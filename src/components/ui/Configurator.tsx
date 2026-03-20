@@ -105,6 +105,20 @@ export function Configurator() {
         const file = e.target.files?.[0];
         if (!file) return;
 
+        // Helper to apply proportional dimensions at max DPI 100
+        const applyProportionalDimensions = (pxW: number, pxH: number) => {
+            const isLandscape = pxW >= pxH;
+            const longestSidePx = isLandscape ? pxW : pxH;
+            const ratio = (isLandscape ? pxH : pxW) / longestSidePx;
+            const maxLongestSideCm = Math.round((longestSidePx * 2.54) / 100);
+            const w = isLandscape ? maxLongestSideCm : Math.round(maxLongestSideCm * ratio);
+            const h = isLandscape ? Math.round(maxLongestSideCm * ratio) : maxLongestSideCm;
+            store.setWidth(w);
+            store.setHeight(h);
+            setLocalWidth(String(w));
+            setLocalHeight(String(h));
+        };
+
         if (file.type === 'image/tiff' || file.type === 'image/tif') {
             const reader = new FileReader();
             reader.onload = (event) => {
@@ -127,7 +141,8 @@ export function Configurator() {
                     store.setImagePixels({ width, height });
                     store.setUserImage(dataUrl);
                     store.setOriginalImage(dataUrl);
-                    lastProcessedImage.current = null; // Reset processed image ref to force auto-sizing EFFECT if it's a NEW upload
+                    lastProcessedImage.current = dataUrl;
+                    applyProportionalDimensions(width, height);
                 }
             };
             reader.readAsArrayBuffer(file);
@@ -137,14 +152,13 @@ export function Configurator() {
                 const result = reader.result as string;
                 const img = new Image();
                 img.onload = () => {
-                    const pixels = { width: img.naturalWidth, height: img.naturalHeight };
-                    // Set all together
-                    store.setImagePixels(pixels);
+                    const pxW = img.naturalWidth;
+                    const pxH = img.naturalHeight;
+                    store.setImagePixels({ width: pxW, height: pxH });
                     store.setUserImage(result);
                     store.setOriginalImage(result);
-                    
-                    // Reset processed image ref to force auto-sizing EFFECT if it's a NEW upload
-                    lastProcessedImage.current = null; 
+                    lastProcessedImage.current = result;
+                    applyProportionalDimensions(pxW, pxH);
                 };
                 img.src = result;
             };
