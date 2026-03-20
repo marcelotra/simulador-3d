@@ -78,32 +78,46 @@ export function Configurator() {
             lastProcessedImage.current = store.originalImage;
         }
     }, [store.imagePixels, store.originalImage, store.setWidth, store.setHeight]);
-
+    // Recovery: If image exists but pixels are null, analyze it
+    useEffect(() => {
+        const imageToAnalyze = store.originalImage || store.userImage;
+        if (imageToAnalyze && !store.imagePixels) {
+            const img = new Image();
+            img.onload = () => {
+                if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+                    store.setImagePixels({ width: img.naturalWidth, height: img.naturalHeight });
+                }
+            };
+            img.src = imageToAnalyze;
+        }
+    }, [store.originalImage, store.userImage, store.imagePixels]);
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        const isTiff = file.name.toLowerCase().endsWith('.tif') || file.name.toLowerCase().endsWith('.tiff');
 
-        if (isTiff) {
+        if (file.type === 'image/tiff' || file.type === 'image/tif') {
             const reader = new FileReader();
             reader.onload = (event) => {
                 const buffer = event.target?.result as ArrayBuffer;
                 const ifds = UTIF.decode(buffer);
                 UTIF.decodeImage(buffer, ifds[0]);
                 const rgba = UTIF.toRGBA8(ifds[0]);
-                const { width, height } = ifds[0] as { width: number; height: number };
+                const { width, height } = ifds[0];
+                
                 const canvas = document.createElement('canvas');
-                canvas.width = width; canvas.height = height;
+                canvas.width = width;
+                canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 if (ctx) {
                     const imageData = ctx.createImageData(width, height);
                     imageData.data.set(rgba);
                     ctx.putImageData(imageData, 0, 0);
                     const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                    
+                    store.setImagePixels({ width, height });
                     store.setUserImage(dataUrl);
                     store.setOriginalImage(dataUrl);
-                    store.setImagePixels({ width, height });
                 }
             };
             reader.readAsArrayBuffer(file);
@@ -111,10 +125,12 @@ export function Configurator() {
             const reader = new FileReader();
             reader.onloadend = () => {
                 const result = reader.result as string;
-                store.setUserImage(result);
-                store.setOriginalImage(result);
                 const img = new Image();
-                img.onload = () => store.setImagePixels({ width: img.naturalWidth, height: img.naturalHeight });
+                img.onload = () => {
+                    store.setImagePixels({ width: img.naturalWidth, height: img.naturalHeight });
+                    store.setUserImage(result);
+                    store.setOriginalImage(result);
+                };
                 img.src = result;
             };
             reader.readAsDataURL(file);
@@ -378,7 +394,6 @@ export function Configurator() {
             </div>
 
             {/* ── SIDE MENUS ── */}
-            
             {/* 1. Dimensões */}
             <SideMenu 
                 isOpen={activeStep === 'dimensions'} 
@@ -387,7 +402,21 @@ export function Configurator() {
                 price={price.total}
             >
                 <div className="space-y-8">
-                    {store.imagePixels ? (
+                    {!store.userImage ? (
+                        <div className="p-8 border-2 border-dashed border-zinc-100 rounded-2xl text-center bg-zinc-50/50">
+                            <Upload className="w-8 h-8 text-zinc-300 mx-auto mb-3" />
+                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                                Carregue sua arte para ver<br />sugestões de tamanho ideais
+                            </p>
+                        </div>
+                    ) : !store.imagePixels ? (
+                        <div className="p-8 border-2 border-dashed border-zinc-100 rounded-2xl text-center bg-zinc-50/50 animate-pulse">
+                            <ZoomIn className="w-8 h-8 text-zinc-300 mx-auto mb-3" />
+                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                                Analisando dimensões da imagem...
+                            </p>
+                        </div>
+                    ) : (
                         <div>
                             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4">Sugestões Proporcionais</p>
                             <div className="grid grid-cols-2 gap-3">
@@ -445,13 +474,6 @@ export function Configurator() {
                                     });
                                 })()}
                             </div>
-                        </div>
-                    ) : (
-                        <div className="p-8 border-2 border-dashed border-zinc-100 rounded-2xl text-center bg-zinc-50/50">
-                            <ZoomIn className="w-8 h-8 text-zinc-300 mx-auto mb-3" />
-                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
-                                Carregue sua arte para ver<br />sugestões de tamanho ideais
-                            </p>
                         </div>
                     )}
 
