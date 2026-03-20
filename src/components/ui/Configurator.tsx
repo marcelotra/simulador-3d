@@ -433,7 +433,12 @@ export function Configurator() {
                         </div>
                     ) : (
                         <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4">Sugestões Proporcionais</p>
+                            <div className="flex items-center justify-between mb-4">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Sugestões Proporcionais</p>
+                                <span className="text-[9px] font-bold text-zinc-300 uppercase tracking-tighter">
+                                    Resolução: {store.imagePixels.width}x{store.imagePixels.height} px
+                                </span>
+                            </div>
                             <div className="grid grid-cols-2 gap-3">
                                 {(() => {
                                     const pxW = store.imagePixels.width;
@@ -550,7 +555,7 @@ export function Configurator() {
                                             }
                                             setDimEdited(false);
                                         }}
-                                        className="w-full bg-zinc-100 text-zinc-900 font-black py-3 rounded-2xl text-[10px] uppercase tracking-widest hover:bg-zinc-200 transition-all"
+                                        className="w-full bg-zinc-100 text-zinc-900 font-black py-3 rounded-2xl text-[10px] uppercase tracking-widest hover:bg-zinc-200 transition-all font-bold"
                                     >
                                         Sincronizar Proporção (Sem Corte)
                                     </button>
