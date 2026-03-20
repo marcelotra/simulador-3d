@@ -536,7 +536,6 @@ export function Configurator() {
                                             // Keep current longest side but adjust shortest
                                             const currentW = parseFloat(localWidth);
                                             const currentH = parseFloat(localHeight);
-                                            const isCurrentLandscape = currentW >= currentH;
                                             
                                             if (isLandscape) {
                                                 const newH = Math.round(currentW * ratio);
