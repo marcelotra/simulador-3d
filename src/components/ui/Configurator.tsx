@@ -55,30 +55,29 @@ export function Configurator() {
     const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
     const lastProcessedImage = useRef<string | null>(null);
     
-     // Auto-size to 100 DPI on image upload OR if pixels appear
+    // Sync local input values when store dimensions change externally (e.g., auto-sizing)
     useEffect(() => {
-        // Only auto-size if imagePixels exist, originalImage is set, and it's a new image
-        if (store.imagePixels && store.originalImage && store.originalImage !== lastProcessedImage.current) {
-            const pxW = store.imagePixels.width;
-            const pxH = store.imagePixels.height;
-            const isLandscape = pxW >= pxH;
-            const longestSidePx = isLandscape ? pxW : pxH;
-            
-            // Max size for 100 DPI
-            const maxLongestSideCm = Math.round((longestSidePx * 2.54) / 100);
-            const ratio = (isLandscape ? pxH : pxW) / longestSidePx;
-            
-            const w = isLandscape ? maxLongestSideCm : Math.round(maxLongestSideCm * ratio);
-            const h = isLandscape ? Math.round(maxLongestSideCm * ratio) : maxLongestSideCm;
-            
-            store.setWidth(w);
-            store.setHeight(h);
-            setLocalWidth(String(w));
-            setLocalHeight(String(h));
-            
-            lastProcessedImage.current = store.originalImage;
-        }
-    }, [store.imagePixels, store.originalImage, store.setWidth, store.setHeight]);
+        setLocalWidth(String(store.width));
+        setLocalHeight(String(store.height));
+    }, [store.width, store.height]);
+
+    // Auto-size: run when imagePixels changes and it's a new image
+    useEffect(() => {
+        if (!store.imagePixels || !store.originalImage) return;
+        if (store.originalImage === lastProcessedImage.current) return;
+        
+        const { width: pxW, height: pxH } = store.imagePixels;
+        const isLandscape = pxW >= pxH;
+        const longestPx = isLandscape ? pxW : pxH;
+        const ratio = (isLandscape ? pxH : pxW) / longestPx;
+        const maxCm = Math.round((longestPx * 2.54) / 100);
+        const w = isLandscape ? maxCm : Math.round(maxCm * ratio);
+        const h = isLandscape ? Math.round(maxCm * ratio) : maxCm;
+        
+        store.setWidth(w);
+        store.setHeight(h);
+        lastProcessedImage.current = store.originalImage;
+    }, [store.imagePixels, store.originalImage]);
 
     // Recovery: If image exists but pixels are null, analyze it
     useEffect(() => {
@@ -92,7 +91,7 @@ export function Configurator() {
             };
             img.src = imageToAnalyze;
         }
-    }, [store.originalImage, store.userImage, store.imagePixels, store.setImagePixels]);
+    }, [store.originalImage, store.userImage, store.imagePixels]);
 
     // Reset lastProcessedImage.current if originalImage is removed
     useEffect(() => {
