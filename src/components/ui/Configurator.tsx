@@ -55,8 +55,9 @@ export function Configurator() {
     const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
     const lastProcessedImage = useRef<string | null>(null);
     
-    // Auto-size to 100 DPI on image upload
+     // Auto-size to 100 DPI on image upload OR if pixels appear
     useEffect(() => {
+        // Only auto-size if imagePixels exist, originalImage is set, and it's a new image
         if (store.imagePixels && store.originalImage && store.originalImage !== lastProcessedImage.current) {
             const pxW = store.imagePixels.width;
             const pxH = store.imagePixels.height;
@@ -78,10 +79,11 @@ export function Configurator() {
             lastProcessedImage.current = store.originalImage;
         }
     }, [store.imagePixels, store.originalImage, store.setWidth, store.setHeight]);
+
     // Recovery: If image exists but pixels are null, analyze it
     useEffect(() => {
         const imageToAnalyze = store.originalImage || store.userImage;
-        if (imageToAnalyze && !store.imagePixels) {
+        if (imageToAnalyze && (!store.imagePixels || store.imagePixels.width === 0)) {
             const img = new Image();
             img.onload = () => {
                 if (img.naturalWidth > 0 && img.naturalHeight > 0) {
@@ -90,7 +92,14 @@ export function Configurator() {
             };
             img.src = imageToAnalyze;
         }
-    }, [store.originalImage, store.userImage, store.imagePixels]);
+    }, [store.originalImage, store.userImage, store.imagePixels, store.setImagePixels]);
+
+    // Reset lastProcessedImage.current if originalImage is removed
+    useEffect(() => {
+        if (!store.originalImage) {
+            lastProcessedImage.current = null;
+        }
+    }, [store.originalImage]);
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -118,6 +127,7 @@ export function Configurator() {
                     store.setImagePixels({ width, height });
                     store.setUserImage(dataUrl);
                     store.setOriginalImage(dataUrl);
+                    lastProcessedImage.current = null; // Reset processed image ref to force auto-sizing EFFECT if it's a NEW upload
                 }
             };
             reader.readAsArrayBuffer(file);
@@ -127,9 +137,14 @@ export function Configurator() {
                 const result = reader.result as string;
                 const img = new Image();
                 img.onload = () => {
-                    store.setImagePixels({ width: img.naturalWidth, height: img.naturalHeight });
+                    const pixels = { width: img.naturalWidth, height: img.naturalHeight };
+                    // Set all together
+                    store.setImagePixels(pixels);
                     store.setUserImage(result);
                     store.setOriginalImage(result);
+                    
+                    // Reset processed image ref to force auto-sizing EFFECT if it's a NEW upload
+                    lastProcessedImage.current = null; 
                 };
                 img.src = result;
             };
@@ -503,12 +518,45 @@ export function Configurator() {
                             </div>
                         </div>
                         {dimEdited && (
-                            <button 
-                                onClick={handleConfirmDimensions}
-                                className="w-full mt-4 bg-zinc-900 text-white font-black py-4 rounded-2xl shadow-xl active:scale-95 transition-all text-xs uppercase tracking-widest"
-                            >
-                                Aplicar Medidas
-                            </button>
+                            <div className="flex flex-col gap-2 mt-4">
+                                <button 
+                                    onClick={handleConfirmDimensions}
+                                    className="w-full bg-zinc-900 text-white font-black py-4 rounded-2xl shadow-xl active:scale-95 transition-all text-xs uppercase tracking-widest"
+                                >
+                                    Aplicar Medidas (Pode Cortar)
+                                </button>
+                                {store.imagePixels && (
+                                    <button 
+                                        onClick={() => {
+                                            const pxW = store.imagePixels!.width;
+                                            const pxH = store.imagePixels!.height;
+                                            const isLandscape = pxW >= pxH;
+                                            const ratio = (isLandscape ? pxH : pxW) / (isLandscape ? pxW : pxH);
+                                            
+                                            // Keep current longest side but adjust shortest
+                                            const currentW = parseFloat(localWidth);
+                                            const currentH = parseFloat(localHeight);
+                                            const isCurrentLandscape = currentW >= currentH;
+                                            
+                                            if (isLandscape) {
+                                                const newH = Math.round(currentW * ratio);
+                                                store.setWidth(currentW);
+                                                store.setHeight(newH);
+                                                setLocalHeight(String(newH));
+                                            } else {
+                                                const newW = Math.round(currentH * ratio);
+                                                store.setWidth(newW);
+                                                store.setHeight(currentH);
+                                                setLocalWidth(String(newW));
+                                            }
+                                            setDimEdited(false);
+                                        }}
+                                        className="w-full bg-zinc-100 text-zinc-900 font-black py-3 rounded-2xl text-[10px] uppercase tracking-widest hover:bg-zinc-200 transition-all"
+                                    >
+                                        Sincronizar Proporção (Sem Corte)
+                                    </button>
+                                )}
+                            </div>
                         )}
                     </div>
                 </div>
