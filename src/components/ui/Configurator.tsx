@@ -393,6 +393,9 @@ export function Configurator() {
                                         const isSelected = Math.abs(store.width - w) < 1 && Math.abs(store.height - h) < 1;
                                         const isLimit = i === steps - 1;
                                         
+                                        // Calculate DPI for this specific size
+                                        const currentDpi = Math.round((longestSidePx * 2.54) / length);
+                                        
                                         return (
                                             <button
                                                 key={`${w}x${h}-${i}`}
@@ -407,10 +410,13 @@ export function Configurator() {
                                                 }`}
                                             >
                                                 <span className="text-sm font-black block">{w} × {h}</span>
-                                                <span className="text-[9px] uppercase tracking-widest opacity-60">cm</span>
+                                                <div className="flex items-center justify-center gap-1 opacity-60">
+                                                    <span className="text-[9px] uppercase tracking-widest leading-none">cm</span>
+                                                    <span className="text-[9px] border-l border-current pl-1 leading-none">{currentDpi} DPI</span>
+                                                </div>
                                                 {isLimit && (
                                                     <div className="absolute top-0 right-0 bg-amber-500 text-[8px] font-black px-1.5 py-0.5 rounded-bl shadow-sm text-white uppercase tracking-tighter">
-                                                        Max Qualidade
+                                                        Tamanho Máximo
                                                     </div>
                                                 )}
                                             </button>
