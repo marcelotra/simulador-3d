@@ -435,9 +435,22 @@ export function Configurator() {
                         <div>
                             <div className="flex items-center justify-between mb-4">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Sugestões Proporcionais</p>
-                                <span className="text-[9px] font-bold text-zinc-300 uppercase tracking-tighter">
-                                    Resolução: {store.imagePixels.width}x{store.imagePixels.height} px
-                                </span>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-[9px] font-bold text-zinc-300 uppercase tracking-tighter">
+                                        Resolução: {store.imagePixels.width}x{store.imagePixels.height} px
+                                    </span>
+                                    <button 
+                                        onClick={() => {
+                                            const w = store.imagePixels!.width;
+                                            const h = store.imagePixels!.height;
+                                            store.setImagePixels({ width: h, height: w });
+                                        }}
+                                        className="text-[9px] font-black text-amber-500 hover:text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100 uppercase tracking-widest transition-colors"
+                                        title="Inverter orientação se estiver errada"
+                                    >
+                                        Inverter Eixos
+                                    </button>
+                                </div>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 {(() => {
