@@ -403,10 +403,7 @@ export function Frame2D() {
                                                         src={userImage}
                                                         alt="Arte"
                                                         className="absolute inset-0 w-full h-full"
-                                                        style={{
-                                                            objectFit: 'contain',
-                                                            objectPosition: 'center',
-                                                        }}
+                                                        style={{ objectFit: 'fill' }}
                                                     />
                                                 ) : (
                                                     <div className="absolute inset-0 flex items-center justify-center text-zinc-300 font-medium text-[8px] uppercase tracking-widest">

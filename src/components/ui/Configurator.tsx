@@ -459,25 +459,29 @@ export function Configurator() {
                                     
                                     const isLandscape = pxW >= pxH;
                                     const longestSidePx = isLandscape ? pxW : pxH;
-                                    const shortestSidePx = isLandscape ? pxH : pxW;
-                                    const ratio = shortestSidePx / longestSidePx;
+                                    const ratio = isLandscape ? pxH / pxW : pxW / pxH; // short / long
                                     
-                                    // Max size for 100 DPI
+                                    // Max size for 100 DPI (in cm)
                                     const maxLongestSideCm = (longestSidePx * 2.54) / 100;
                                     
-                                    // Generate exactly 8 steps as divisions of the max size
+                                    // Generate exactly 8 steps
                                     const steps = 8;
                                     const stepSize = maxLongestSideCm / steps;
                                     
                                     return Array.from({ length: steps }).map((_, i) => {
-                                        const length = Math.round((i + 1) * stepSize);
-                                        const w = isLandscape ? length : Math.round(length * ratio);
-                                        const h = isLandscape ? Math.round(length * ratio) : length;
+                                        // Round only the longest side, derive shortest from exact ratio
+                                        const longest = Math.round((i + 1) * stepSize);
+                                        const shortest = Math.round(longest * ratio);
+                                        
+                                        // w = horizontal (width), h = vertical (height)
+                                        const w = isLandscape ? longest : shortest;
+                                        const h = isLandscape ? shortest : longest;
+                                        
                                         const isSelected = Math.abs(store.width - w) < 1 && Math.abs(store.height - h) < 1;
                                         const isLimit = i === steps - 1;
                                         
                                         // Calculate DPI for this specific size
-                                        const currentDpi = Math.round((longestSidePx * 2.54) / length);
+                                        const currentDpi = Math.round((longestSidePx * 2.54) / longest);
                                         
                                         return (
                                             <button
