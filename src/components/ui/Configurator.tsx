@@ -378,16 +378,13 @@ export function Configurator() {
                                     // Max size for 100 DPI
                                     const maxLongestSideCm = (longestSidePx * 2.54) / 100;
                                     
-                                    // Start from 20cm or 10cm if max is small
-                                    const startLongestSideCm = maxLongestSideCm > 20 ? 20 : 10;
-                                    
-                                    // Generate exactly 8 steps
+                                    // Generate exactly 8 steps as divisions of the max size
                                     const steps = 8;
-                                    const range = maxLongestSideCm - startLongestSideCm;
-                                    const stepSize = range / (steps - 1);
+                                    const stepSize = maxLongestSideCm / steps;
                                     
                                     return Array.from({ length: steps }).map((_, i) => {
-                                        const length = Math.round(startLongestSideCm + (i * stepSize));
+                                        // Ensure the smallest size is at least 10cm or stepSize
+                                        const length = Math.round((i + 1) * stepSize);
                                         const w = isLandscape ? length : Math.round(length * ratio);
                                         const h = isLandscape ? Math.round(length * ratio) : length;
                                         const isSelected = Math.abs(store.width - w) < 1 && Math.abs(store.height - h) < 1;
