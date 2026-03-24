@@ -3,11 +3,12 @@ import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useSimulatorStore, FrameData } from '../../store/useSimulatorStore';
-import { Upload, ChevronLeft, Save, Edit2, Trash2, X, PenTool } from 'lucide-react';
+import { Upload, ChevronLeft, Save, Edit2, Trash2, X, PenTool, Crop } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PathEditorModal } from '../../components/admin/PathEditorModal';
 import { FrameCornerGenerator, FrameCornerGeneratorRef } from '../../components/admin/FrameCornerGenerator';
 import { compressImage } from '../../utils/imageCompression';
+import { ImageCropper } from '../../components/ui/ImageCropper';
 
 const frameSchema = z.object({
     name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
@@ -46,6 +47,9 @@ export default function FrameManager() {
     const [textureImage, setTextureImage] = useState<string | null>(null);
     const [galleryImage, setGalleryImage] = useState<string | null>(null);
     const [profileRealImage, setProfileRealImage] = useState<string | null>(null);
+    const [elbowImage, setElbowImage] = useState<string | null>(null);
+    const [elbowSourceForCrop, setElbowSourceForCrop] = useState<string | null>(null);
+    const [isElbowCropping, setIsElbowCropping] = useState(false);
     const [profileSVGData, setProfileSVGData] = useState<string | null>(null);
     const [editingId, setEditingId] = useState<string | null>(null);
     
@@ -116,6 +120,34 @@ export default function FrameManager() {
         }
     };
 
+    // Upload photo of the frame elbow/corner to then crop
+    const handleElbowUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setElbowSourceForCrop(reader.result as string);
+                setIsElbowCropping(true);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    // Also allow cropping from the already-uploaded gallery image
+    const handleCropFromGallery = () => {
+        if (galleryImage) {
+            setElbowSourceForCrop(galleryImage);
+            setIsElbowCropping(true);
+        }
+    };
+
+    const handleElbowCropComplete = async (croppedUrl: string) => {
+        const compressed = await compressImage(croppedUrl, 500, 0.85);
+        setElbowImage(compressed);
+        setIsElbowCropping(false);
+        setElbowSourceForCrop(null);
+    };
+
     const handleSVGChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -158,6 +190,7 @@ export default function FrameManager() {
         setTextureImage(frame.textureUrl);
         setGalleryImage(frame.previewUrl || null);
         setProfileRealImage(frame.profileImageUrl || null);
+        setElbowImage(frame.elbowUrl || null);
         setProfileSVGData(frame.profileSVG || null);
     };
 
@@ -181,6 +214,8 @@ export default function FrameManager() {
         setTextureImage(null);
         setGalleryImage(null);
         setProfileRealImage(null);
+        setElbowImage(null);
+        setElbowSourceForCrop(null);
         setProfileSVGData(null);
     };
 
@@ -197,6 +232,7 @@ export default function FrameManager() {
             category: data.category as any,
             textureUrl: textureImage,
             previewUrl: galleryImage || undefined,
+            elbowUrl: elbowImage || undefined,
             frameWidth: data.frameWidth,
             frameDepth: data.frameDepth,
             rabbetWidth: data.rabbetWidth,
@@ -471,7 +507,7 @@ export default function FrameManager() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     <div>
                                         <label className="block text-xs font-medium text-zinc-500 mb-2 uppercase tracking-wider">Textura (Simulador)</label>
                                         <div className="relative aspect-square rounded-lg border-2 border-dashed border-zinc-200 bg-zinc-50 flex flex-col items-center justify-center overflow-hidden group hover:border-zinc-300 transition-colors">
@@ -528,6 +564,58 @@ export default function FrameManager() {
                                             )}
                                             <input type="file" accept="image/*" onChange={handleProfileRealChange} className="absolute inset-0 opacity-0 cursor-pointer" title="Foto real do perfil para o card de escolha" />
                                         </label>
+                                    </div>
+
+                                    {/* Nova seção: Ponta da Moldura (elbowUrl) */}
+                                    <div>
+                                        <label className="block text-xs font-medium text-zinc-500 mb-2 uppercase tracking-wider underline text-amber-600">3. Ponta da Moldura</label>
+                                        <div className="relative aspect-square rounded-lg border-2 border-dashed border-amber-200 bg-amber-50/50 flex flex-col items-center justify-center overflow-hidden group hover:border-amber-300 transition-colors">
+                                            {elbowImage ? (
+                                                <>
+                                                    <img src={elbowImage} className="w-full h-full object-cover" alt="Ponta da Moldura" />
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => { setElbowSourceForCrop(elbowImage); setIsElbowCropping(true); }}
+                                                            className="px-2 py-1 bg-white text-zinc-900 rounded text-[10px] font-bold flex items-center gap-1"
+                                                        >
+                                                            <Crop className="w-3 h-3" /> Recriar
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setElbowImage(null)}
+                                                            className="px-2 py-1 bg-red-500 text-white rounded text-[10px] font-bold"
+                                                        >
+                                                            Remover
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="flex flex-col items-center justify-center text-amber-400 gap-2 px-2">
+                                                    <Crop className="w-5 h-5" />
+                                                    <span className="text-[9px] font-bold text-center uppercase tracking-tight text-amber-600">Foto da ponta</span>
+                                                    {galleryImage && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleCropFromGallery}
+                                                            className="px-2 py-1 bg-amber-500 text-white rounded text-[9px] font-bold hover:bg-amber-600 transition-colors"
+                                                        >
+                                                            Recortar da foto
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {/* Upload de nova foto para a ponta */}
+                                            {!elbowImage && (
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={handleElbowUpload}
+                                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                                    title="Envie uma foto da ponta da moldura para recortar"
+                                                />
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -651,6 +739,13 @@ export default function FrameManager() {
                     </div>
                 </div>
             </div>
+            {isElbowCropping && elbowSourceForCrop && (
+                <ImageCropper
+                    imageUrl={elbowSourceForCrop}
+                    onCrop={(croppedUrl) => handleElbowCropComplete(croppedUrl)}
+                    onClose={() => { setIsElbowCropping(false); setElbowSourceForCrop(null); }}
+                />
+            )}
             <PathEditorModal
                 isOpen={isPathEditorOpen}
                 onClose={() => setIsPathEditorOpen(false)}
