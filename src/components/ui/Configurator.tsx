@@ -672,83 +672,58 @@ export function Configurator() {
                                     <div
                                         key={frame.id}
                                         onClick={() => { store.setFrameProfileId(frame.id); store.setHasFrame(true); }}
-                                        className={`w-full rounded-2xl border-2 transition-all overflow-hidden cursor-pointer ${
-                                            isSelected ? 'border-zinc-900 shadow-lg ring-2 ring-zinc-900/10' : 'border-zinc-100 hover:border-zinc-300'
+                                        className={`w-full rounded-2xl border-2 transition-all overflow-hidden cursor-pointer flex ${
+                                            isSelected
+                                                ? 'border-zinc-900 shadow-xl ring-2 ring-zinc-900/10'
+                                                : 'border-zinc-200 hover:border-zinc-400 hover:shadow-md'
                                         }`}
                                     >
-                                        <div className="w-full flex items-stretch">
-                                            {/* Foto da moldura — fundo sempre próprio, não herda o dark do estado */}
-                                            <div className="relative flex-shrink-0 w-32 bg-zinc-200 overflow-hidden">
-                                                {photoToShow ? (
+                                        {/* Faixa lateral de seleção */}
+                                        <div className={`w-1 flex-shrink-0 transition-all ${isSelected ? 'bg-zinc-900' : 'bg-transparent'}`} />
+
+                                        {/* Foto da moldura — grande, ~65% da largura */}
+                                        <div className="relative overflow-hidden bg-zinc-100" style={{ flex: '0 0 65%' }}>
+                                            {photoToShow ? (
+                                                <>
                                                     <img
                                                         src={photoToShow}
                                                         alt={frame.name}
                                                         className="w-full h-full object-cover"
-                                                        style={{ minHeight: '88px' }}
+                                                        style={{ minHeight: '90px', maxHeight: '110px' }}
                                                     />
-                                                ) : (
-                                                    <div className="w-full h-full min-h-[88px] flex items-center justify-center bg-zinc-100">
-                                                        <FrameChevron frame={frame} size={60} />
-                                                    </div>
-                                                )}
-                                                {/* Botão de zoom */}
-                                                {photoToShow && (
                                                     <button
                                                         onClick={e => { e.stopPropagation(); setEnlargedImage(photoToShow); }}
-                                                        className="absolute bottom-1 right-1 bg-black/50 hover:bg-black/70 backdrop-blur-sm p-1.5 rounded-lg transition-all"
+                                                        className="absolute bottom-1.5 right-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-sm p-1.5 rounded-lg transition-all"
                                                         title="Ampliar foto"
                                                     >
                                                         <ZoomIn className="w-3 h-3 text-white" />
                                                     </button>
-                                                )}
-                                                {/* Indicador de selecionado */}
-                                                {isSelected && (
-                                                    <div className="absolute top-1 left-1 w-3 h-3 rounded-full bg-zinc-900 border-2 border-white shadow" />
-                                                )}
-                                            </div>
+                                                </>
+                                            ) : (
+                                                <div className="w-full flex items-center justify-center bg-zinc-100" style={{ minHeight: '90px' }}>
+                                                    <FrameChevron frame={frame} size={70} />
+                                                </div>
+                                            )}
+                                        </div>
 
-                                            {/* Informações — sempre branco/claro, nunca escuro */}
-                                            <div className={`flex-1 p-3 flex flex-col justify-center min-w-0 border-l ${isSelected ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'}`}>
-                                                <span className={`text-xs font-black leading-tight mb-0.5 ${isSelected ? 'text-white' : 'text-zinc-900'}`}>
-                                                    {frame.name}
-                                                </span>
-                                                <span className={`text-[10px] font-mono font-bold mb-1 ${isSelected ? 'text-amber-400' : 'text-amber-700'}`}>
-                                                    {frame.id}
-                                                </span>
-                                                {frame.description && (
-                                                    <span className={`text-[10px] leading-snug line-clamp-2 ${isSelected ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                                                        {frame.description}
-                                                    </span>
-                                                )}
-                                                <span className={`text-[9px] mt-1 font-bold uppercase tracking-widest ${isSelected ? 'text-zinc-500' : 'text-zinc-300'}`}>
-                                                    {frame.frameWidth}cm • {frame.category}
-                                                </span>
-                                            </div>
+                                        {/* Painel de informações — branco, ~35% */}
+                                        <div className="flex-1 bg-white flex flex-col justify-center px-4 py-3 min-w-0">
+                                            <span className={`text-sm font-black leading-tight mb-2 ${isSelected ? 'text-zinc-900' : 'text-zinc-900'}`}>
+                                                {frame.name}
+                                            </span>
 
-                                            {/* Ponta da moldura: elbowUrl > FrameChevron */}
-                                            {(() => {
-                                                const cornerImg = frame.elbowUrl;
-                                                return cornerImg ? (
-                                                    <button
-                                                        onClick={e => { e.stopPropagation(); setEnlargedImage(cornerImg); }}
-                                                        title="Ver ponta da moldura"
-                                                        className={`flex-shrink-0 w-20 self-stretch overflow-hidden border-l relative group ${isSelected ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-100 bg-zinc-50'}`}
-                                                    >
-                                                        <img
-                                                            src={cornerImg}
-                                                            alt={`Ponta ${frame.name}`}
-                                                            className="w-full h-full object-cover"
-                                                        />
-                                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
-                                                            <ZoomIn className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
-                                                        </div>
-                                                    </button>
-                                                ) : (
-                                                    <div className={`flex-shrink-0 w-16 flex items-center justify-center border-l ${isSelected ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-100 bg-zinc-50'}`}>
-                                                        <FrameChevron frame={frame} size={52} />
-                                                    </div>
-                                                );
-                                            })()}
+                                            {/* Linha separadora vermelha */}
+                                            <div className="h-0.5 w-full bg-red-500 mb-2" />
+
+                                            <span className="text-[11px] text-zinc-500 font-medium">
+                                                Código: {frame.id}
+                                            </span>
+
+                                            {frame.description && (
+                                                <span className="text-[10px] text-zinc-400 mt-1 leading-snug line-clamp-2">
+                                                    {frame.description}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                 );
