@@ -682,13 +682,13 @@ export function Configurator() {
                                         <div className={`w-1 flex-shrink-0 transition-all ${isSelected ? 'bg-zinc-900' : 'bg-transparent'}`} />
 
                                         {/* Foto da moldura — imagem única com ponta já incluída */}
-                                        <div className="relative overflow-hidden bg-zinc-100" style={{ flex: '0 0 65%', minHeight: '90px' }}>
+                                        <div className="relative overflow-hidden bg-white" style={{ flex: '0 0 65%', minHeight: '90px' }}>
                                             {photoToShow ? (
                                                 <>
                                                     <img
                                                         src={photoToShow}
                                                         alt={frame.name}
-                                                        className="w-full h-full object-cover"
+                                                        className="w-full h-full object-contain"
                                                     />
                                                     <button
                                                         onClick={e => { e.stopPropagation(); setEnlargedImage(photoToShow); }}
