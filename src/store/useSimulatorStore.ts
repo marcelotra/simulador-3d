@@ -319,8 +319,27 @@ export const useSimulatorStore = create<FrameState>()(
     resetConfiguration: () => set(INITIAL_STATE),
 }),
 {
-    name: 'sim-3d-storage',
+    name: 'sim-3d-storage-v2',
     storage: createJSONStorage(() => localStorage),
+    version: 1,
+    // Persist ONLY catalog data and cart — never session data (images are too heavy and volatile)
+    partialize: (state) => ({
+        availableFrames: state.availableFrames,
+        availablePapers: state.availablePapers,
+        cart: state.cart,
+    }),
+    // On version mismatch: keep the catalog data, reset session state
+    migrate: (persistedState: any, version: number) => {
+        if (version === 0) {
+            // Migrating from old storage key (no version): keep frames/papers if they exist
+            return {
+                availableFrames: persistedState?.availableFrames ?? defaultInitialFrames,
+                availablePapers: persistedState?.availablePapers ?? defaultInitialPapers,
+                cart: persistedState?.cart ?? [],
+            };
+        }
+        return persistedState;
+    },
 }
 )
 );
