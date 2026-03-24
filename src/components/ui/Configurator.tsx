@@ -671,30 +671,27 @@ export function Configurator() {
                                 return (
                                     <div
                                         key={frame.id}
-                                        className={`w-full rounded-2xl border-2 transition-all overflow-hidden ${
-                                            isSelected ? 'border-zinc-900 shadow-lg' : 'border-zinc-100 hover:border-zinc-300 bg-white'
+                                        onClick={() => { store.setFrameProfileId(frame.id); store.setHasFrame(true); }}
+                                        className={`w-full rounded-2xl border-2 transition-all overflow-hidden cursor-pointer ${
+                                            isSelected ? 'border-zinc-900 shadow-lg ring-2 ring-zinc-900/10' : 'border-zinc-100 hover:border-zinc-300'
                                         }`}
                                     >
-                                        {/* Linha principal: foto + info */}
-                                        <button
-                                            onClick={() => { store.setFrameProfileId(frame.id); store.setHasFrame(true); }}
-                                            className={`w-full flex items-stretch text-left transition-all ${isSelected ? 'bg-zinc-900 text-white' : 'bg-white'}`}
-                                        >
-                                            {/* Foto da moldura — grande e clicável para zoom */}
-                                            <div className="relative flex-shrink-0 w-28 bg-zinc-100 overflow-hidden">
+                                        <div className="w-full flex items-stretch">
+                                            {/* Foto da moldura — fundo sempre próprio, não herda o dark do estado */}
+                                            <div className="relative flex-shrink-0 w-32 bg-zinc-200 overflow-hidden">
                                                 {photoToShow ? (
-                                                    <img 
-                                                        src={photoToShow} 
-                                                        alt={frame.name} 
+                                                    <img
+                                                        src={photoToShow}
+                                                        alt={frame.name}
                                                         className="w-full h-full object-cover"
-                                                        style={{ minHeight: '80px' }}
+                                                        style={{ minHeight: '88px' }}
                                                     />
                                                 ) : (
-                                                    <div className="w-full h-full min-h-[80px] flex items-center justify-center bg-zinc-100">
+                                                    <div className="w-full h-full min-h-[88px] flex items-center justify-center bg-zinc-100">
                                                         <FrameChevron frame={frame} size={60} />
                                                     </div>
                                                 )}
-                                                {/* Botão de zoom na foto */}
+                                                {/* Botão de zoom */}
                                                 {photoToShow && (
                                                     <button
                                                         onClick={e => { e.stopPropagation(); setEnlargedImage(photoToShow); }}
@@ -704,15 +701,19 @@ export function Configurator() {
                                                         <ZoomIn className="w-3 h-3 text-white" />
                                                     </button>
                                                 )}
+                                                {/* Indicador de selecionado */}
+                                                {isSelected && (
+                                                    <div className="absolute top-1 left-1 w-3 h-3 rounded-full bg-zinc-900 border-2 border-white shadow" />
+                                                )}
                                             </div>
 
-                                            {/* Informações */}
-                                            <div className="flex-1 p-3 flex flex-col justify-center min-w-0">
+                                            {/* Informações — sempre branco/claro, nunca escuro */}
+                                            <div className={`flex-1 p-3 flex flex-col justify-center min-w-0 border-l ${isSelected ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-zinc-100'}`}>
                                                 <span className={`text-xs font-black leading-tight mb-0.5 ${isSelected ? 'text-white' : 'text-zinc-900'}`}>
                                                     {frame.name}
                                                 </span>
-                                                <span className={`text-[10px] font-mono font-bold mb-1 ${isSelected ? 'text-zinc-400' : 'text-amber-700'}`}>
-                                                    Código: {frame.id}
+                                                <span className={`text-[10px] font-mono font-bold mb-1 ${isSelected ? 'text-amber-400' : 'text-amber-700'}`}>
+                                                    {frame.id}
                                                 </span>
                                                 {frame.description && (
                                                     <span className={`text-[10px] leading-snug line-clamp-2 ${isSelected ? 'text-zinc-400' : 'text-zinc-500'}`}>
@@ -724,14 +725,14 @@ export function Configurator() {
                                                 </span>
                                             </div>
 
-                                            {/* Ponta da moldura: elbowUrl > previewUrl > FrameChevron */}
+                                            {/* Ponta da moldura: elbowUrl > FrameChevron */}
                                             {(() => {
-                                                const cornerImg = frame.elbowUrl || frame.previewUrl;
+                                                const cornerImg = frame.elbowUrl;
                                                 return cornerImg ? (
                                                     <button
                                                         onClick={e => { e.stopPropagation(); setEnlargedImage(cornerImg); }}
                                                         title="Ver ponta da moldura"
-                                                        className={`flex-shrink-0 w-20 self-stretch overflow-hidden border-l relative group ${isSelected ? 'border-zinc-700' : 'border-zinc-100'}`}
+                                                        className={`flex-shrink-0 w-20 self-stretch overflow-hidden border-l relative group ${isSelected ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-100 bg-zinc-50'}`}
                                                     >
                                                         <img
                                                             src={cornerImg}
@@ -748,7 +749,7 @@ export function Configurator() {
                                                     </div>
                                                 );
                                             })()}
-                                        </button>
+                                        </div>
                                     </div>
                                 );
                             })}
