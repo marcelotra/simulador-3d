@@ -16,7 +16,6 @@ export function Frame2D() {
     const currentFrame = availableFrames.find(f => f.id === frameProfileId) || availableFrames[0];
     const fw = hasFrame ? (currentFrame ? currentFrame.frameWidth : 5.7) : 0;
     const fd = hasFrame ? (currentFrame?.frameDepth || fw * 1.5) : 0; // Profundidade física (parede externa)
-    const rabbetDepth = hasFrame ? (currentFrame?.rabbetDepth || fd * 0.4) : 0; // Degrau interno até o vidro
     const profileType = currentFrame?.profileType || 'caixa';
     const profileSVG = currentFrame?.profileSVG || '';
 
