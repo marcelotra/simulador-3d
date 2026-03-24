@@ -48,17 +48,21 @@ export function Configurator() {
     const [isCropping, setIsCropping] = useState(false);
 
     // Local dimension state for controlled inputs
-    const [localWidth, setLocalWidth] = useState(String(store.width));
-    const [localHeight, setLocalHeight] = useState(String(store.height));
+    // Start empty so the user must actively choose a size
+    const [localWidth, setLocalWidth] = useState('');
+    const [localHeight, setLocalHeight] = useState('');
     const [dimEdited, setDimEdited] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
     const lastProcessedImage = useRef<string | null>(null);
     
     // Sync local input values when store dimensions change externally (e.g., auto-sizing)
+    // Only update if there's a real value (avoid showing defaults before user interacts)
     useEffect(() => {
-        setLocalWidth(String(store.width));
-        setLocalHeight(String(store.height));
+        if (store.width > 0 && store.height > 0) {
+            setLocalWidth(String(store.width));
+            setLocalHeight(String(store.height));
+        }
     }, [store.width, store.height]);
 
     // Auto-size: run when imagePixels changes and it's a new image
@@ -224,8 +228,8 @@ export function Configurator() {
 
     const handleAddAnother = () => {
         store.resetConfiguration();
-        setLocalWidth('40');
-        setLocalHeight('60');
+        setLocalWidth('');
+        setLocalHeight('');
         setIsCartModalOpen(false);
     };
 
@@ -283,7 +287,11 @@ export function Configurator() {
                             </div>
                             <div>
                                 <SectionTitle step={1} title="Tamanho da Imagem" />
-                                <span className="text-lg font-black text-zinc-900 tracking-tight">{store.width} × {store.height} cm</span>
+                                {localWidth && localHeight ? (
+                                    <span className="text-lg font-black text-zinc-900 tracking-tight">{localWidth} × {localHeight} cm</span>
+                                ) : (
+                                    <span className="text-lg font-black text-zinc-400 tracking-tight">Clique para escolher</span>
+                                )}
                             </div>
                         </div>
                         <ChevronRight className="w-5 h-5 text-zinc-300 group-hover:text-zinc-900 transition-colors" />
