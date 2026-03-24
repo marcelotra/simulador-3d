@@ -3,13 +3,8 @@
  * Specialized for the picture frame simulator (Full Upper Boundary extractor).
  */
 
-/** Threshold: pixels darker than this (0–255 luminance) are considered "solid" */
 const LUMA_THRESHOLD = 210;
-
-/** RDP epsilon — precision of the curve. Lower = more detail. */
-const RDP_EPSILON = 0.5;
-
-/** Target canvas size for tracing (larger = more detail, slower) */
+const RDP_EPSILON = 0.5; // Precision: smaller = detail
 const TRACE_SIZE = 400;
 
 // ─── Step 1: image → binary canvas ──────────────────────────────────────────
@@ -79,7 +74,7 @@ function traceBoundary(data: Uint8ClampedArray, w: number, h: number, startX: nu
             }
         }
         if (!found) break;
-        if (curr.x === startX && curr.y === startY && points.length > 5) break; // closed loop
+        if (curr.x === startX && curr.y === startY && points.length > 5) break; 
     }
     return points;
 }
@@ -90,7 +85,6 @@ function findLargestBoundary(data: Uint8ClampedArray, w: number, h: number): Poi
     for (let y = 1; y < h - 1; y++) {
         for (let x = 1; x < w - 1; x++) {
             if (isSolid(data, x, y, w) && !visited[y * w + x]) {
-                // simple edge check
                 let isEdge = false;
                 for (let d = 0; d < 8; d += 2) {
                     if (!isSolid(data, x + MOORE[d].dx, y + MOORE[d].dy, w)) { isEdge = true; break; }
@@ -106,12 +100,8 @@ function findLargestBoundary(data: Uint8ClampedArray, w: number, h: number): Poi
     return best;
 }
 
-// ─── Step 3: Extract Upper Half ──────────────────────────────────────────────
+// ─── Step 3: Extract the Upper "L-like" perimeter ───────────────────────────
 
-/** 
- * Takes the closed silhouette loop and crops out the "bottom" part (back face).
- * We want from the absolute min-x point to the absolute max-x point along the path with min-y.
- */
 function extractUpperFace(points: Point[]): Point[] {
     if (points.length < 10) return points;
 
@@ -122,7 +112,6 @@ function extractUpperFace(points: Point[]): Point[] {
         if (points[i].x > points[maxXIndex].x) maxXIndex = i;
     }
 
-    // Two possible paths between minXIndex and maxXIndex
     const pathA: Point[] = [];
     const pathB: Point[] = [];
 
@@ -138,16 +127,10 @@ function extractUpperFace(points: Point[]): Point[] {
         if (i === maxXIndex) break;
     }
 
-    // Calculate average Y (sum Y) for both. The lower sum Y is the "top" part.
     const sumA = pathA.reduce((s, p) => s + p.y, 0) / pathA.length;
     const sumB = pathB.reduce((s, p) => s + p.y, 0) / pathB.length;
 
-    const surface = (sumA < sumB) ? pathA : pathB;
-    
-    // Sort by X? NO. We want the perimeter segments.
-    // Actually the 3D renderer sorts them itself.
-    // If we have a vertical edge, a sort will put them at the same X.
-    return surface;
+    return (sumA < sumB) ? pathA : pathB;
 }
 
 // ─── Step 4: Ramer-Douglas-Peucker simplification ───────────────────────────
@@ -176,34 +159,32 @@ function rdp(points: Point[], epsilon: number): Point[] {
     return [points[0], points[end]];
 }
 
-// ─── Step 5: normalize + generate Polygon String ───────────────────────────
+// ─── Step 5: normalize + generate Clean Polygon ──────────────────────────────
 
 function toPolygonString(points: Point[], allPoints: Point[]): string {
     if (!points.length) return '';
     
-    // Calculate full bounding box from the SILHOUETTE loop, not just the surface
     const xs = allPoints.map(p => p.x);
     const ys = allPoints.map(p => p.y);
     const minX = Math.min(...xs), maxX = Math.max(...xs);
-    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const minY = Math.min(...ys), maxY = Math.max(...ys); 
     
+    // We want the total vertical depth of the drawing (minY to maxY of silhuette)
+    // to map to 0-100% in the simulator.
     const w = maxX - minX || 1, h = maxY - minY || 1;
 
-    // Scale surface points to 0-100% relative to total silhuette box
     const polyPoints = points.map(p => {
         const xPercent = ((p.x - minX) / w) * 100;
         const yPercent = ((p.y - minY) / h) * 100;
         return `${xPercent.toFixed(2)}% ${yPercent.toFixed(2)}%`;
     });
 
-    // Close preview polygon with flat bottom corners
-    polyPoints.push(`100% 100%`);
-    polyPoints.push(`0% 100%`);
-
+    // We NO LONGER push extra closing points (100% 100% etc)
+    // because they create huge fake slices in the 3D renderer.
+    // CSS clip-path will automatically close the polygon anyway.
     return `polygon(${polyPoints.join(', ')})`;
 }
 
-/** Converts a polygon string back to a standard SVG path for previewing */
 function polygonToSVGPath(poly: string): string {
     const pairs = poly.replace('polygon(', '').replace(')', '').split(', ');
     const points = pairs.map(pair => {
@@ -212,6 +193,7 @@ function polygonToSVGPath(poly: string): string {
     });
     if (!points.length) return '';
     const [first, ...rest] = points;
+    // Closing it with the average Y to help the preview visually
     return `M ${first.x} ${first.y} ` + rest.map(p => `L ${p.x} ${p.y}`).join(' ') + ' Z';
 }
 
@@ -221,7 +203,7 @@ export async function vectorizeProfileImage(base64: string): Promise<string | nu
     try {
         const { data, w, h } = await loadImageToBinary(base64);
         const fullLoop = findLargestBoundary(data, w, h);
-        if (fullLoop.length < 20) return null;
+        if (fullLoop.length < 15) return null;
         
         const surface = extractUpperFace(fullLoop);
         const simplified = rdp(surface, RDP_EPSILON);
@@ -236,7 +218,7 @@ export async function vectorizeProfileImage(base64: string): Promise<string | nu
 export function svgPathToDataURL(polygon: string, size = 100): string {
     const path = polygonToSVGPath(polygon);
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="${size}" height="${size}">
-  <path d="${path}" fill="#94a3b8" stroke="#1e293b" stroke-width="0.5" stroke-linejoin="round"/>
+  <path d="${path}" fill="#94a3b8" stroke="#1e293b" stroke-width="0.3" stroke-linejoin="round"/>
 </svg>`;
     return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
 }
