@@ -1,14 +1,13 @@
 /**
- * Vectorize a technical profile drawing (JPG/PNG silhouette) into an SVG path string.
- * This version is specialized for the picture frame simulator:
- *   1. It follows the project convention of returning a CSS-style polygon string: "polygon(x1% y1%, x2% y2%, ...)"
+ * Vectorize a technical profile drawing (JPG/PNG silhouette) into a Polygon String.
+ * Specialized for the picture frame simulator (Front Surface Contour extractor).
  */
 
 /** Threshold: pixels darker than this (0–255 luminance) are considered "solid" */
 const LUMA_THRESHOLD = 210;
 
-/** RDP epsilon — higher = fewer points, less detail. Lower = more precision. */
-const RDP_EPSILON = 1.0;
+/** RDP epsilon — precision of the curve. Lower = more detail. */
+const RDP_EPSILON = 0.8;
 
 /** Target canvas size for tracing (larger = more detail, slower) */
 const TRACE_SIZE = 400;
@@ -24,12 +23,9 @@ function loadImageToBinary(base64: string): Promise<{ data: Uint8ClampedArray; w
             canvas.width = TRACE_SIZE;
             canvas.height = TRACE_SIZE;
             const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
-            
-            // White background
             ctx.fillStyle = '#fff';
             ctx.fillRect(0, 0, TRACE_SIZE, TRACE_SIZE);
 
-            // Maintain aspect ratio with 5% padding to avoid edge sticking
             const padding = TRACE_SIZE * 0.05;
             const innerSize = TRACE_SIZE - padding * 2;
             const scale = Math.min(innerSize / img.width, innerSize / img.height);
@@ -50,74 +46,46 @@ function loadImageToBinary(base64: string): Promise<{ data: Uint8ClampedArray; w
 function isSolid(data: Uint8ClampedArray, x: number, y: number, w: number): boolean {
     if (x < 0 || x >= w || y < 0 || y >= w) return false;
     const i = (y * w + x) * 4;
-    // Luminance formula
     const luma = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
     return luma < LUMA_THRESHOLD;
 }
 
-// ─── Step 2: boundary tracing (Moore neighborhood) ──────────────────────────
+// ─── Step 2: Surface Contour Extractor (y = f(x)) ────────────────────────────
 
 type Point = { x: number; y: number };
 
-const MOORE = [
-    { dx: 1, dy: 0 }, { dx: 1, dy: 1 }, { dx: 0, dy: 1 }, { dx: -1, dy: 1 },
-    { dx: -1, dy: 0 }, { dx: -1, dy: -1 }, { dx: 0, dy: -1 }, { dx: 1, dy: -1 },
-];
-
-function traceBoundary(data: Uint8ClampedArray, w: number, h: number, startX: number, startY: number): Point[] {
-    const points: Point[] = [];
-    let curr = { x: startX, y: startY };
-    let prevDir = 6;
-
-    const maxIters = w * h;
-    for (let iter = 0; iter < maxIters; iter++) {
-        points.push({ ...curr });
-        let found = false;
-        for (let d = 0; d < 8; d++) {
-            const dir = (prevDir + 6 + d) % 8;
-            const nx = curr.x + MOORE[dir].dx;
-            const ny = curr.y + MOORE[dir].dy;
-            if (isSolid(data, nx, ny, w)) {
-                prevDir = dir;
-                curr = { x: nx, y: ny };
-                found = true;
-                break;
-            }
-        }
-        if (!found) break;
-        if (curr.x === startX && curr.y === startY && points.length > 3) break;
-    }
-    return points;
-}
-
-function findLargestBoundary(data: Uint8ClampedArray, w: number, h: number): Point[] {
-    let bestBoundary: Point[] = [];
-    const visited = new Uint8Array(w * h);
-    for (let y = 1; y < h - 1; y++) {
-        for (let x = 1; x < w - 1; x++) {
-            const idx = y * w + x;
-            if (visited[idx]) continue;
+/** 
+ * Scans for the "upper perimeter" (front face) of the profile silhouette.
+ * For each column, it finds the FIRST solid pixel from top to bottom.
+ */
+function extractUpperContour(data: Uint8ClampedArray, w: number, h: number): Point[] {
+    const rawPoints: Point[] = [];
+    
+    // Find the bounding box first to focus our scan
+    let minX = w, maxX = 0, minY = h, maxY = 0;
+    let foundSolid = false;
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
             if (isSolid(data, x, y, w)) {
-                let isEdge = false;
-                for (let d = 0; d < 8; d += 2) {
-                    if (!isSolid(data, x + MOORE[d].dx, y + MOORE[d].dy, w)) {
-                        isEdge = true;
-                        break;
-                    }
-                }
-                if (isEdge) {
-                    const boundary = traceBoundary(data, w, h, x, y);
-                    if (boundary.length > bestBoundary.length) {
-                        bestBoundary = boundary;
-                    }
-                    for (const p of boundary) {
-                        visited[p.y * w + p.x] = 1;
-                    }
-                }
+                minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+                minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+                foundSolid = true;
             }
         }
     }
-    return bestBoundary;
+    if (!foundSolid) return [];
+
+    // For each x coordinate, find the top-most solid pixel
+    for (let x = minX; x <= maxX; x++) {
+        for (let y = minY; y <= maxY; y++) {
+            if (isSolid(data, x, y, w)) {
+                rawPoints.push({ x, y });
+                break; // move to next column once we find the top surface
+            }
+        }
+    }
+    
+    return rawPoints;
 }
 
 // ─── Step 3: Ramer-Douglas-Peucker simplification ───────────────────────────
@@ -151,26 +119,40 @@ function rdp(points: Point[], epsilon: number): Point[] {
 function toPolygonString(points: Point[]): string {
     if (!points.length) return '';
     
-    const xs = points.map(p => p.x), ys = points.map(p => p.y);
+    // Total bounding box of the whole silhuette (re-calculate from all pixels if possible, 
+    // but using raw points min/max is fine since we extracted surface which spans minX/maxX).
+    const xs = points.map(p => p.x);
+    const ys = points.map(p => p.y);
     const minX = Math.min(...xs), maxX = Math.max(...xs);
     const minY = Math.min(...ys), maxY = Math.max(...ys);
+    
     const w = maxX - minX || 1, h = maxY - minY || 1;
 
+    // Normalizing X to 0-100 and Y to 0-100 (relative to silhouette height)
+    // The simulator expects Y=0 for front-most, but our silhouette might have y=0 as top.
+    // Actually, minY is the highest part, so (y - minY) will be 0 for the highest crest.
     const polyPoints = points.map(p => {
         const xPercent = ((p.x - minX) / w) * 100;
-        const yPercent = ((p.y - minY) / h) * 100;
+        const yPercent = ((p.y - minY) / h) * 100; // Correct: the highest point is 0% depth
         return `${xPercent.toFixed(2)}% ${yPercent.toFixed(2)}%`;
     });
+
+    // Add back the "back face" points to close the polygon (needed for preview clipPath)
+    // We want a closed L or [ shape.
+    // From rightmost surface point to bottom-right, then bottom-left, then back to leftmost surface point.
+    polyPoints.push(`100% 100%`);
+    polyPoints.push(`0% 100%`);
 
     return `polygon(${polyPoints.join(', ')})`;
 }
 
 /** Converts a polygon string back to a standard SVG path for previewing */
 function polygonToSVGPath(poly: string): string {
-    // Let's use a simpler match that works with the project format
     const pairs = poly.replace('polygon(', '').replace(')', '').split(', ');
     const points = pairs.map(pair => {
-        const [x, y] = pair.trim().split(' ').map(v => parseFloat(v));
+        const coords = pair.trim().split(/\s+/);
+        const x = parseFloat(coords[0]);
+        const y = parseFloat(coords[1]);
         return { x, y };
     });
 
@@ -184,10 +166,10 @@ function polygonToSVGPath(poly: string): string {
 export async function vectorizeProfileImage(base64: string): Promise<string | null> {
     try {
         const { data, w, h } = await loadImageToBinary(base64);
-        const boundary = findLargestBoundary(data, w, h);
-        if (boundary.length < 10) return null;
+        const surface = extractUpperContour(data, w, h);
+        if (surface.length < 10) return null;
         
-        const simplified = rdp(boundary, RDP_EPSILON);
+        const simplified = rdp(surface, RDP_EPSILON);
         return toPolygonString(simplified);
     } catch (err) {
         console.error('Vectorization error:', err);
