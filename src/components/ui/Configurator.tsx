@@ -55,10 +55,15 @@ export function Configurator() {
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
     const lastProcessedImage = useRef<string | null>(null);
+    const hasMounted = useRef(false);
     
-    // Sync local input values when store dimensions change externally (e.g., auto-sizing)
-    // Only update if there's a real value (avoid showing defaults before user interacts)
+    // Sync local input values when store dimensions change externally (e.g., auto-sizing from image upload)
+    // Skip the first render (mount) to avoid filling with store defaults before user interacts
     useEffect(() => {
+        if (!hasMounted.current) {
+            hasMounted.current = true;
+            return;
+        }
         if (store.width > 0 && store.height > 0) {
             setLocalWidth(String(store.width));
             setLocalHeight(String(store.height));
