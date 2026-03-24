@@ -3,12 +3,13 @@ import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useSimulatorStore, FrameData } from '../../store/useSimulatorStore';
-import { Upload, ChevronLeft, Save, Edit2, Trash2, X, PenTool, Crop } from 'lucide-react';
+import { Upload, ChevronLeft, Save, Edit2, Trash2, X, PenTool, Crop, Wand2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PathEditorModal } from '../../components/admin/PathEditorModal';
 import { FrameCornerGenerator, FrameCornerGeneratorRef } from '../../components/admin/FrameCornerGenerator';
 import { compressImage } from '../../utils/imageCompression';
 import { ImageCropper } from '../../components/ui/ImageCropper';
+import { vectorizeProfileImage, svgPathToDataURL } from '../../utils/vectorizeProfile';
 
 const frameSchema = z.object({
     name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
@@ -51,6 +52,8 @@ export default function FrameManager() {
     const [elbowSourceForCrop, setElbowSourceForCrop] = useState<string | null>(null);
     const [isElbowCropping, setIsElbowCropping] = useState(false);
     const [profileSVGData, setProfileSVGData] = useState<string | null>(null);
+    const [isVectorizing, setIsVectorizing] = useState(false);
+    const [vectorPreviewUrl, setVectorPreviewUrl] = useState<string | null>(null);
     const [editingId, setEditingId] = useState<string | null>(null);
     
     // Path Editor State
@@ -113,8 +116,9 @@ export default function FrameManager() {
         if (file) {
             const reader = new FileReader();
             reader.onloadend = async () => {
-                const compressed = await compressImage(reader.result as string, 300, 0.7);
+                const compressed = await compressImage(reader.result as string, 800, 0.85);
                 setProfileRealImage(compressed);
+                setEditorReferenceImage(compressed);
             };
             reader.readAsDataURL(file);
         }
@@ -148,27 +152,36 @@ export default function FrameManager() {
         setElbowSourceForCrop(null);
     };
 
-    const handleSVGChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const result = reader.result as string;
-                // Check if it's SVG to load directly, otherwise open editor
-                if (file.type === 'image/svg+xml') {
-                    setProfileSVGData(result);
-                } else {
-                    setEditorReferenceImage(result);
-                    setIsPathEditorOpen(true);
-                }
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
     const handlePathSave = (generatedSvgPath: string) => {
         setProfileSVGData(generatedSvgPath);
         setValue('profileType', 'curvo');
+        setVectorPreviewUrl(svgPathToDataURL(generatedSvgPath));
+    };
+
+    const handleVectorize = async () => {
+        if (!profileRealImage) {
+            alert('Por favor, faça o upload da foto do desenho técnico primeiro.');
+            return;
+        }
+
+        try {
+            setIsVectorizing(true);
+            const svgPath = await vectorizeProfileImage(profileRealImage);
+            
+            if (svgPath) {
+                setProfileSVGData(svgPath);
+                setVectorPreviewUrl(svgPathToDataURL(svgPath));
+                setValue('profileType', 'curvo');
+                alert('Perfil vectorizado com sucesso! O simulador já está usando as novas curvas.');
+            } else {
+                alert('Não foi possível detectar um contorno claro na imagem. Tente uma imagem com fundo mais branco e silhueta mais escura.');
+            }
+        } catch (err) {
+            console.error('Erro na vectorização:', err);
+            alert('Erro ao processar imagem.');
+        } finally {
+            setIsVectorizing(false);
+        }
     };
 
     const startEditing = (frame: FrameData) => {
@@ -190,8 +203,14 @@ export default function FrameManager() {
         setTextureImage(frame.textureUrl);
         setGalleryImage(frame.previewUrl || null);
         setProfileRealImage(frame.profileImageUrl || null);
+        setEditorReferenceImage(frame.profileImageUrl || null);
         setElbowImage(frame.elbowUrl || null);
         setProfileSVGData(frame.profileSVG || null);
+        if (frame.profileSVG) {
+            setVectorPreviewUrl(svgPathToDataURL(frame.profileSVG));
+        } else {
+            setVectorPreviewUrl(null);
+        }
     };
 
     const cancelEditing = () => {
@@ -217,6 +236,7 @@ export default function FrameManager() {
         setElbowImage(null);
         setElbowSourceForCrop(null);
         setProfileSVGData(null);
+        setVectorPreviewUrl(null);
     };
 
     const onSubmit: SubmitHandler<FrameFormValues> = (data) => {
@@ -441,47 +461,95 @@ export default function FrameManager() {
                                     <div className="grid grid-cols-1 gap-4 mb-4">
                                         <div>
                                             <label className="block text-xs font-medium text-zinc-500 mb-1 uppercase tracking-wider flex items-center justify-between">
-                                                <span>Desenho Técnico (Foto ou SVG)</span>
+                                                <span>Desenho Técnico (Corte Transversal)</span>
                                                 {profileSVGData && (
-                                                    <button type="button" onClick={() => setIsPathEditorOpen(true)} className="text-blue-500 hover:text-blue-700 flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded transition-colors text-[9px] font-bold">
-                                                        <PenTool className="w-2.5 h-2.5" /> Editar Traçado
-                                                    </button>
-                                                )}
-                                            </label>
-                                            <div className="relative h-[48px] rounded-lg border border-zinc-200 bg-zinc-50 flex items-center overflow-hidden group hover:border-zinc-300 transition-colors cursor-pointer">
-                                                {profileSVGData ? (
-                                                    <div className="flex w-full px-2 items-center gap-3">
-                                                        <div className="w-10 h-8 flex-shrink-0 bg-white rounded border border-zinc-200 p-0.5">
-                                                            <ProfileSilhouette polygon={profileSVGData} />
-                                                        </div>
-                                                        <div className="flex-1 flex flex-col min-w-0">
-                                                            <span className="text-[10px] text-zinc-900 font-bold truncate leading-tight uppercase tracking-tight">Desenho Técnico Salvo</span>
-                                                            <span className="text-[8px] text-zinc-500 font-mono truncate">Polígono Extraído ✓</span>
-                                                        </div>
+                                                    <div className="flex gap-2">
                                                         <button 
                                                             type="button" 
-                                                            onClick={(e) => { e.preventDefault(); setProfileSVGData(null); }} 
-                                                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-md transition-colors mr-1"
-                                                            title="Remover Desenho SVG"
+                                                            onClick={() => setIsPathEditorOpen(true)} 
+                                                            className="text-blue-500 hover:text-blue-700 flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded transition-colors text-[9px] font-bold"
                                                         >
-                                                            <X className="w-3.5 h-3.5" />
+                                                            <PenTool className="w-2.5 h-2.5" /> Editar
+                                                        </button>
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={(e) => { e.preventDefault(); setProfileSVGData(null); setVectorPreviewUrl(null); }} 
+                                                            className="text-red-500 hover:text-red-700 flex items-center gap-1 bg-red-50 px-2 py-0.5 rounded transition-colors text-[9px] font-bold"
+                                                        >
+                                                            <Trash2 className="w-2.5 h-2.5" /> Limpar
                                                         </button>
                                                     </div>
-                                                ) : (
-                                                    <div className="flex items-center">
-                                                        <Upload className="w-3 h-3 text-zinc-400 mr-2" />
-                                                        <span className="text-[10px] text-zinc-500 font-medium">Enviar Foto da Planta (JPG/PNG)</span>
-                                                    </div>
                                                 )}
-                                                <input 
-                                                    type="file" 
-                                                    accept=".svg, image/svg+xml, image/png, image/jpeg, image/jpg" 
-                                                    onChange={handleSVGChange} 
-                                                    className="absolute inset-0 opacity-0 cursor-pointer" 
-                                                    title="Envie a foto do corte transversal ou desenho técnico" 
-                                                />
+                                            </label>
+                                            
+                                            <div className="flex gap-2 items-stretch mt-2">
+                                                {/* Upload Parte 1: Imagem JPG de Referência */}
+                                                <div className="flex-1 relative">
+                                                    <input
+                                                        type="file"
+                                                        accept="image/png, image/jpeg, image/jpg"
+                                                        onChange={handleProfileRealChange}
+                                                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                                        id="profile-real-upload"
+                                                        title="Envie a foto do corte transversal ( JPG/PNG )"
+                                                    />
+                                                    <div className="h-20 bg-zinc-50 border-2 border-dashed border-zinc-200 rounded-lg flex flex-col items-center justify-center text-center p-2 hover:border-zinc-400 hover:bg-zinc-100 transition-all">
+                                                        {profileRealImage ? (
+                                                            <div className="relative w-full h-full flex items-center justify-center">
+                                                                <img src={profileRealImage} alt="Perfil Real" className="max-h-full max-w-full object-contain rounded" />
+                                                                <div className="absolute inset-0 bg-black/5 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity rounded">
+                                                                    <Upload className="w-4 h-4 text-zinc-600" />
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <Upload className="w-5 h-5 text-zinc-400 mb-1" />
+                                                                <span className="text-[10px] text-zinc-500 font-medium">JPG/PNG do Perfil</span>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Parte 2: Ação de Vectorizar e Preview SVG */}
+                                                <div className="flex flex-col gap-2 w-24">
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => { e.preventDefault(); handleVectorize(); }}
+                                                        disabled={!profileRealImage || isVectorizing}
+                                                        className={`h-9 rounded-lg flex items-center justify-center transition-all ${
+                                                            !profileRealImage || isVectorizing
+                                                                ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
+                                                                : 'bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200 shadow-sm'
+                                                        }`}
+                                                        title="Converter desenho técnico em curvas automáticas"
+                                                    >
+                                                        {isVectorizing ? (
+                                                            <div className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+                                                        ) : (
+                                                            <div className="flex flex-col items-center">
+                                                                <Wand2 className="w-3.5 h-3.5" />
+                                                                <span className="text-[8px] font-bold mt-0.5">VECTORIZAR</span>
+                                                            </div>
+                                                        )}
+                                                    </button>
+                                                    
+                                                    <div className="h-9 bg-zinc-900 rounded-lg flex items-center justify-center border border-zinc-800 p-1 relative group" title="Resultado do contorno extraído">
+                                                        {vectorPreviewUrl ? (
+                                                            <img src={vectorPreviewUrl} alt="Vetor" className="h-full object-contain invert opacity-80 group-hover:opacity-100 transition-opacity" />
+                                                        ) : (
+                                                            <div className="flex flex-col items-center opacity-30">
+                                                                <div className="w-1.5 h-1.5 bg-white/20 rounded-full" />
+                                                                <span className="text-[7px] text-white mt-1 uppercase font-bold tracking-tighter">VETOR</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <p className="text-[9px] text-zinc-500 mt-1 leading-tight">Envie sua foto da planta. O sistema abrirá uma ferramenta mágica de clique-a-clique.</p>
+                                            
+                                            <p className="text-[9px] text-zinc-400 mt-2 leading-tight">
+                                                1. Envie o desenho técnico (JPG/PNG). <br/>
+                                                2. Clique em <b>Vectorizar</b> para gerar as curvas do perfil 3D automaticamente.
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
