@@ -681,8 +681,8 @@ export function Configurator() {
                                         {/* Faixa lateral de seleção */}
                                         <div className={`w-1 flex-shrink-0 transition-all ${isSelected ? 'bg-zinc-900' : 'bg-transparent'}`} />
 
-                                        {/* Foto da moldura — ~50% da largura */}
-                                        <div className="relative overflow-hidden bg-zinc-100" style={{ flex: '0 0 50%' }}>
+                                        {/* Foto da moldura — ~65% da largura */}
+                                        <div className="relative overflow-hidden bg-zinc-100" style={{ flex: '0 0 65%' }}>
                                             {photoToShow ? (
                                                 <>
                                                     <img
@@ -706,48 +706,21 @@ export function Configurator() {
                                             )}
                                         </div>
 
-                                        {/* Ponta da moldura (elbowUrl ou FrameChevron) */}
-                                        {frame.elbowUrl ? (
-                                            <button
-                                                onClick={e => { e.stopPropagation(); setEnlargedImage(frame.elbowUrl!); }}
-                                                title="Ver ponta da moldura"
-                                                className="flex-shrink-0 w-16 self-stretch overflow-hidden border-l border-zinc-200 relative group bg-zinc-100"
-                                            >
-                                                <img
-                                                    src={frame.elbowUrl}
-                                                    alt={`Ponta ${frame.name}`}
-                                                    className="w-full h-full object-cover"
-                                                />
-                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
-                                                    <ZoomIn className="w-3.5 h-3.5 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
-                                                </div>
-                                            </button>
-                                        ) : (
-                                            <div className="flex-shrink-0 w-16 flex items-center justify-center border-l border-zinc-100 bg-zinc-50">
-                                                <FrameChevron frame={frame} size={48} />
-                                            </div>
-                                        )}
-
-                                        {/* Painel de informações — branco, restante */}
-                                        <div className="flex-1 bg-white flex flex-col justify-center px-3 py-3 min-w-0">
+                                        {/* Painel de informações */}
+                                        <div className="flex-1 bg-white flex flex-col justify-center px-4 py-3 min-w-0">
                                             <span className="text-sm font-black leading-tight mb-2 text-zinc-900">
                                                 {frame.name}
                                             </span>
-
-                                            {/* Linha separadora vermelha */}
                                             <div className="h-0.5 w-full bg-red-500 mb-2" />
-
                                             <span className="text-[11px] text-zinc-500 font-medium">
                                                 Código: {frame.id}
                                             </span>
-
                                             {frame.description && (
                                                 <span className="text-[10px] text-zinc-400 mt-1 leading-snug line-clamp-2">
                                                     {frame.description}
                                                 </span>
                                             )}
                                         </div>
-
                                     </div>
                                 );
                             })}
