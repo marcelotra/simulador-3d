@@ -681,48 +681,27 @@ export function Configurator() {
                                         {/* Faixa lateral de seleção */}
                                         <div className={`w-1 flex-shrink-0 transition-all ${isSelected ? 'bg-zinc-900' : 'bg-transparent'}`} />
 
-                                        {/* Área de foto: textura + ponta lado a lado */}
-                                        <div className="flex overflow-hidden bg-zinc-100" style={{ flex: '0 0 65%', minHeight: '90px' }}>
-                                            {/* Textura da moldura */}
-                                            <div className={`relative overflow-hidden ${frame.elbowUrl ? 'w-[60%]' : 'w-full'}`}>
-                                                {photoToShow ? (
-                                                    <>
-                                                        <img
-                                                            src={photoToShow}
-                                                            alt={frame.name}
-                                                            className="w-full h-full object-cover"
-                                                        />
-                                                        <button
-                                                            onClick={e => { e.stopPropagation(); setEnlargedImage(photoToShow); }}
-                                                            className="absolute bottom-1.5 left-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-sm p-1.5 rounded-lg transition-all"
-                                                            title="Ampliar foto"
-                                                        >
-                                                            <ZoomIn className="w-3 h-3 text-white" />
-                                                        </button>
-                                                    </>
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center">
-                                                        <FrameChevron frame={frame} size={60} />
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* Ponta da moldura — 40% da área de foto */}
-                                            {frame.elbowUrl && (
-                                                <button
-                                                    onClick={e => { e.stopPropagation(); setEnlargedImage(frame.elbowUrl!); }}
-                                                    title="Ampliar ponta"
-                                                    className="relative w-[40%] overflow-hidden border-l border-zinc-200/60 group bg-white flex-shrink-0"
-                                                >
+                                        {/* Foto da moldura — imagem única com ponta já incluída */}
+                                        <div className="relative overflow-hidden bg-zinc-100" style={{ flex: '0 0 65%', minHeight: '90px' }}>
+                                            {photoToShow ? (
+                                                <>
                                                     <img
-                                                        src={frame.elbowUrl}
-                                                        alt={`Ponta ${frame.name}`}
-                                                        className="w-full h-full object-contain"
+                                                        src={photoToShow}
+                                                        alt={frame.name}
+                                                        className="w-full h-full object-cover"
                                                     />
-                                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-all flex items-center justify-center">
-                                                        <ZoomIn className="w-3.5 h-3.5 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
-                                                    </div>
-                                                </button>
+                                                    <button
+                                                        onClick={e => { e.stopPropagation(); setEnlargedImage(photoToShow); }}
+                                                        className="absolute bottom-1.5 left-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-sm p-1.5 rounded-lg transition-all"
+                                                        title="Ampliar foto"
+                                                    >
+                                                        <ZoomIn className="w-3 h-3 text-white" />
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center">
+                                                    <FrameChevron frame={frame} size={70} />
+                                                </div>
                                             )}
                                         </div>
 
