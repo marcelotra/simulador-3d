@@ -1,10 +1,10 @@
 /**
  * Vectorize a technical profile drawing (JPG/PNG silhouette) into a Polygon String.
- * Specialized for the picture frame simulator (Full Upper Boundary extractor).
+ * Full silhouette loop for picture frame simulator.
  */
 
 const LUMA_THRESHOLD = 210;
-const RDP_EPSILON = 0.5; // Precision: smaller = detail
+const RDP_EPSILON = 0.5; 
 const TRACE_SIZE = 400;
 
 // ─── Step 1: image → binary canvas ──────────────────────────────────────────
@@ -45,7 +45,7 @@ function isSolid(data: Uint8ClampedArray, x: number, y: number, w: number): bool
     return luma < LUMA_THRESHOLD;
 }
 
-// ─── Step 2: Full Boundary Tracing (Moore neighborhood) ──────────────────────
+// ─── Step 2: Full Boundary Tracing ──────────────────────────────────────────
 
 type Point = { x: number; y: number };
 
@@ -100,40 +100,7 @@ function findLargestBoundary(data: Uint8ClampedArray, w: number, h: number): Poi
     return best;
 }
 
-// ─── Step 3: Extract the Upper "L-like" perimeter ───────────────────────────
-
-function extractUpperFace(points: Point[]): Point[] {
-    if (points.length < 10) return points;
-
-    // Find leftmost and rightmost indices
-    let minXIndex = 0, maxXIndex = 0;
-    for (let i = 1; i < points.length; i++) {
-        if (points[i].x < points[minXIndex].x) minXIndex = i;
-        if (points[i].x > points[maxXIndex].x) maxXIndex = i;
-    }
-
-    const pathA: Point[] = [];
-    const pathB: Point[] = [];
-
-    // Path A: forward
-    for (let i = minXIndex; ; i = (i + 1) % points.length) {
-        pathA.push(points[i]);
-        if (i === maxXIndex) break;
-    }
-
-    // Path B: backward
-    for (let i = minXIndex; ; i = (i - 1 + points.length) % points.length) {
-        pathB.push(points[i]);
-        if (i === maxXIndex) break;
-    }
-
-    const sumA = pathA.reduce((s, p) => s + p.y, 0) / pathA.length;
-    const sumB = pathB.reduce((s, p) => s + p.y, 0) / pathB.length;
-
-    return (sumA < sumB) ? pathA : pathB;
-}
-
-// ─── Step 4: Ramer-Douglas-Peucker simplification ───────────────────────────
+// ─── Step 3: Ramer-Douglas-Peucker simplification ───────────────────────────
 
 function perpendicularDist(p: Point, a: Point, b: Point): number {
     const dx = b.x - a.x, dy = b.y - a.y;
@@ -159,18 +126,16 @@ function rdp(points: Point[], epsilon: number): Point[] {
     return [points[0], points[end]];
 }
 
-// ─── Step 5: normalize + generate Clean Polygon ──────────────────────────────
+// ─── Step 4: normalize + generate Polygon ──────────────────────────────
 
-function toPolygonString(points: Point[], allPoints: Point[]): string {
+function toPolygonString(points: Point[]): string {
     if (!points.length) return '';
     
-    const xs = allPoints.map(p => p.x);
-    const ys = allPoints.map(p => p.y);
+    // Calculate bounding box of the whole silhuette
+    const xs = points.map(p => p.x);
+    const ys = points.map(p => p.y);
     const minX = Math.min(...xs), maxX = Math.max(...xs);
-    const minY = Math.min(...ys), maxY = Math.max(...ys); 
-    
-    // We want the total vertical depth of the drawing (minY to maxY of silhuette)
-    // to map to 0-100% in the simulator.
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
     const w = maxX - minX || 1, h = maxY - minY || 1;
 
     const polyPoints = points.map(p => {
@@ -179,9 +144,6 @@ function toPolygonString(points: Point[], allPoints: Point[]): string {
         return `${xPercent.toFixed(2)}% ${yPercent.toFixed(2)}%`;
     });
 
-    // We NO LONGER push extra closing points (100% 100% etc)
-    // because they create huge fake slices in the 3D renderer.
-    // CSS clip-path will automatically close the polygon anyway.
     return `polygon(${polyPoints.join(', ')})`;
 }
 
@@ -193,7 +155,6 @@ function polygonToSVGPath(poly: string): string {
     });
     if (!points.length) return '';
     const [first, ...rest] = points;
-    // Closing it with the average Y to help the preview visually
     return `M ${first.x} ${first.y} ` + rest.map(p => `L ${p.x} ${p.y}`).join(' ') + ' Z';
 }
 
@@ -203,12 +164,10 @@ export async function vectorizeProfileImage(base64: string): Promise<string | nu
     try {
         const { data, w, h } = await loadImageToBinary(base64);
         const fullLoop = findLargestBoundary(data, w, h);
-        if (fullLoop.length < 15) return null;
+        if (fullLoop.length < 10) return null;
         
-        const surface = extractUpperFace(fullLoop);
-        const simplified = rdp(surface, RDP_EPSILON);
-        
-        return toPolygonString(simplified, fullLoop);
+        const simplified = rdp(fullLoop, RDP_EPSILON);
+        return toPolygonString(simplified);
     } catch (err) {
         console.error('Vectorization error:', err);
         return null;
