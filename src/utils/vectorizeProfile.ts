@@ -1,10 +1,7 @@
 /**
  * Vectorize a technical profile drawing (JPG/PNG silhouette) into an SVG path string.
- * This version is more robust:
- *   1. It scans the entire image for all dark regions.
- *   2. It traces the boundary of every region.
- *   3. It selects only the boundary with the LARGEST perimeter (ignoring noise/crosshairs).
- *   4. It uses a higher threshold for gray silhouettes.
+ * This version is specialized for the picture frame simulator:
+ *   1. It follows the project convention of returning a CSS-style polygon string: "polygon(x1% y1%, x2% y2%, ...)"
  */
 
 /** Threshold: pixels darker than this (0–255 luminance) are considered "solid" */
@@ -70,20 +67,16 @@ const MOORE = [
 function traceBoundary(data: Uint8ClampedArray, w: number, h: number, startX: number, startY: number): Point[] {
     const points: Point[] = [];
     let curr = { x: startX, y: startY };
-    let prevDir = 6; // start looking from bottom
+    let prevDir = 6;
 
     const maxIters = w * h;
-    
     for (let iter = 0; iter < maxIters; iter++) {
         points.push({ ...curr });
-
         let found = false;
-        // Search clockwise starting from backtrack dir
         for (let d = 0; d < 8; d++) {
             const dir = (prevDir + 6 + d) % 8;
             const nx = curr.x + MOORE[dir].dx;
             const ny = curr.y + MOORE[dir].dy;
-            
             if (isSolid(data, nx, ny, w)) {
                 prevDir = dir;
                 curr = { x: nx, y: ny };
@@ -91,41 +84,32 @@ function traceBoundary(data: Uint8ClampedArray, w: number, h: number, startX: nu
                 break;
             }
         }
-        
         if (!found) break;
-        // Check if closed loop
         if (curr.x === startX && curr.y === startY && points.length > 3) break;
     }
-    
     return points;
 }
 
 function findLargestBoundary(data: Uint8ClampedArray, w: number, h: number): Point[] {
     let bestBoundary: Point[] = [];
     const visited = new Uint8Array(w * h);
-
-    // Scan for edge pixels
     for (let y = 1; y < h - 1; y++) {
         for (let x = 1; x < w - 1; x++) {
             const idx = y * w + x;
             if (visited[idx]) continue;
-
             if (isSolid(data, x, y, w)) {
-                // Check if it's an edge (adjacent to background)
                 let isEdge = false;
-                for (let d = 0; d < 8; d += 2) { // just orthogonal check for speed
+                for (let d = 0; d < 8; d += 2) {
                     if (!isSolid(data, x + MOORE[d].dx, y + MOORE[d].dy, w)) {
                         isEdge = true;
                         break;
                     }
                 }
-
                 if (isEdge) {
                     const boundary = traceBoundary(data, w, h, x, y);
                     if (boundary.length > bestBoundary.length) {
                         bestBoundary = boundary;
                     }
-                    // Mark boundary points as visited
                     for (const p of boundary) {
                         visited[p.y * w + p.x] = 1;
                     }
@@ -139,8 +123,7 @@ function findLargestBoundary(data: Uint8ClampedArray, w: number, h: number): Poi
 // ─── Step 3: Ramer-Douglas-Peucker simplification ───────────────────────────
 
 function perpendicularDist(p: Point, a: Point, b: Point): number {
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
+    const dx = b.x - a.x, dy = b.y - a.y;
     const len = Math.sqrt(dx * dx + dy * dy);
     if (len === 0) return Math.sqrt((p.x - a.x) ** 2 + (p.y - a.y) ** 2);
     return Math.abs(dy * p.x - dx * p.y + b.x * a.y - b.y * a.x) / len;
@@ -148,8 +131,7 @@ function perpendicularDist(p: Point, a: Point, b: Point): number {
 
 function rdp(points: Point[], epsilon: number): Point[] {
     if (points.length <= 2) return points;
-    let maxDist = 0;
-    let maxIdx = 0;
+    let maxDist = 0, maxIdx = 0;
     const end = points.length - 1;
     for (let i = 1; i < end; i++) {
         const d = perpendicularDist(points[i], points[0], points[end]);
@@ -164,28 +146,35 @@ function rdp(points: Point[], epsilon: number): Point[] {
     return [points[0], points[end]];
 }
 
-// ─── Step 4: normalize + generate SVG path ──────────────────────────────────
+// ─── Step 4: normalize + generate Polygon String ───────────────────────────
 
-function normalize(points: Point[], size: number): Point[] {
-    if (!points.length) return [];
+function toPolygonString(points: Point[]): string {
+    if (!points.length) return '';
     
-    const xs = points.map(p => p.x);
-    const ys = points.map(p => p.y);
+    const xs = points.map(p => p.x), ys = points.map(p => p.y);
     const minX = Math.min(...xs), maxX = Math.max(...xs);
     const minY = Math.min(...ys), maxY = Math.max(...ys);
-    
-    const rangeX = maxX - minX || 1;
-    const rangeY = maxY - minY || 1;
-    
-    const scale = size / Math.max(rangeX, rangeY);
-    
-    return points.map(p => ({
-        x: Math.round(((p.x - minX) * scale) * 10) / 10,
-        y: Math.round(((p.y - minY) * scale) * 10) / 10,
-    }));
+    const w = maxX - minX || 1, h = maxY - minY || 1;
+
+    const polyPoints = points.map(p => {
+        const xPercent = ((p.x - minX) / w) * 100;
+        const yPercent = ((p.y - minY) / h) * 100;
+        return `${xPercent.toFixed(2)}% ${yPercent.toFixed(2)}%`;
+    });
+
+    return `polygon(${polyPoints.join(', ')})`;
 }
 
-function toSVGPath(points: Point[]): string {
+/** Converts a polygon string back to a standard SVG path for previewing */
+function polygonToSVGPath(poly: string): string {
+    const pts = poly.match(/[\d.]+%[\s,]+[\d.] samples/g) || poly.match(/[\d.]+%[\s]+[\d.]+/g) || poly.match(/[\d.]+% [\d.]+/g);
+    // Let's use a simpler match that works with the project format
+    const pairs = poly.replace('polygon(', '').replace(')', '').split(', ');
+    const points = pairs.map(pair => {
+        const [x, y] = pair.trim().split(' ').map(v => parseFloat(v));
+        return { x, y };
+    });
+
     if (!points.length) return '';
     const [first, ...rest] = points;
     return `M ${first.x} ${first.y} ` + rest.map(p => `L ${p.x} ${p.y}`).join(' ') + ' Z';
@@ -197,20 +186,19 @@ export async function vectorizeProfileImage(base64: string): Promise<string | nu
     try {
         const { data, w, h } = await loadImageToBinary(base64);
         const boundary = findLargestBoundary(data, w, h);
-        
         if (boundary.length < 10) return null;
         
         const simplified = rdp(boundary, RDP_EPSILON);
-        const normalized = normalize(simplified, 100);
-        return toSVGPath(normalized);
+        return toPolygonString(simplified);
     } catch (err) {
         console.error('Vectorization error:', err);
         return null;
     }
 }
 
-export function svgPathToDataURL(path: string, size = 100): string {
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
+export function svgPathToDataURL(polygon: string, size = 100): string {
+    const path = polygonToSVGPath(polygon);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="${size}" height="${size}">
   <path d="${path}" fill="#94a3b8" stroke="#1e293b" stroke-width="0.5" stroke-linejoin="round"/>
 </svg>`;
     return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
