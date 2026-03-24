@@ -1,43 +1,45 @@
 /**
  * Vectorize a technical profile drawing (JPG/PNG silhouette) into an SVG path string.
- * 100% client-side using Canvas API — no external dependencies.
- *
- * Pipeline:
- *   1. Draw image to offscreen canvas
- *   2. Threshold pixels to binary (dark = solid, bright = background)
- *   3. Trace the outer boundary of the largest solid region (Moore neighborhood)
- *   4. Simplify with Ramer-Douglas-Peucker
- *   5. Normalize to a 0-100 viewBox
- *   6. Return as SVG path string
+ * This version is more robust:
+ *   1. It scans the entire image for all dark regions.
+ *   2. It traces the boundary of every region.
+ *   3. It selects only the boundary with the LARGEST perimeter (ignoring noise/crosshairs).
+ *   4. It uses a higher threshold for gray silhouettes.
  */
 
 /** Threshold: pixels darker than this (0–255 luminance) are considered "solid" */
-const LUMA_THRESHOLD = 180;
+const LUMA_THRESHOLD = 210;
 
-/** RDP epsilon — higher = fewer points, less detail */
-const RDP_EPSILON = 1.5;
+/** RDP epsilon — higher = fewer points, less detail. Lower = more precision. */
+const RDP_EPSILON = 1.0;
 
 /** Target canvas size for tracing (larger = more detail, slower) */
-const TRACE_SIZE = 300;
+const TRACE_SIZE = 400;
 
 // ─── Step 1: image → binary canvas ──────────────────────────────────────────
 
 function loadImageToBinary(base64: string): Promise<{ data: Uint8ClampedArray; w: number; h: number }> {
     return new Promise((resolve, reject) => {
         const img = new Image();
+        img.crossOrigin = "anonymous";
         img.onload = () => {
             const canvas = document.createElement('canvas');
             canvas.width = TRACE_SIZE;
             canvas.height = TRACE_SIZE;
-            const ctx = canvas.getContext('2d')!;
-            // White background, then draw scaled image
+            const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+            
+            // White background
             ctx.fillStyle = '#fff';
             ctx.fillRect(0, 0, TRACE_SIZE, TRACE_SIZE);
 
-            // Maintain aspect ratio
-            const scale = Math.min(TRACE_SIZE / img.width, TRACE_SIZE / img.height);
+            // Maintain aspect ratio with 5% padding to avoid edge sticking
+            const padding = TRACE_SIZE * 0.05;
+            const innerSize = TRACE_SIZE - padding * 2;
+            const scale = Math.min(innerSize / img.width, innerSize / img.height);
             const dx = (TRACE_SIZE - img.width * scale) / 2;
             const dy = (TRACE_SIZE - img.height * scale) / 2;
+            
+            ctx.imageSmoothingEnabled = true;
             ctx.drawImage(img, dx, dy, img.width * scale, img.height * scale);
 
             const { data } = ctx.getImageData(0, 0, TRACE_SIZE, TRACE_SIZE);
@@ -49,12 +51,14 @@ function loadImageToBinary(base64: string): Promise<{ data: Uint8ClampedArray; w
 }
 
 function isSolid(data: Uint8ClampedArray, x: number, y: number, w: number): boolean {
+    if (x < 0 || x >= w || y < 0 || y >= w) return false;
     const i = (y * w + x) * 4;
+    // Luminance formula
     const luma = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
     return luma < LUMA_THRESHOLD;
 }
 
-// ─── Step 2: boundary tracing (Moore neighborhood / square tracing) ──────────
+// ─── Step 2: boundary tracing (Moore neighborhood) ──────────────────────────
 
 type Point = { x: number; y: number };
 
@@ -63,47 +67,73 @@ const MOORE = [
     { dx: -1, dy: 0 }, { dx: -1, dy: -1 }, { dx: 0, dy: -1 }, { dx: 1, dy: -1 },
 ];
 
-function findStartPixel(data: Uint8ClampedArray, w: number, h: number): Point | null {
-    for (let y = 0; y < h; y++) {
-        for (let x = 0; x < w; x++) {
-            if (isSolid(data, x, y, w)) return { x, y };
-        }
-    }
-    return null;
-}
-
-function traceBoundary(data: Uint8ClampedArray, w: number, h: number): Point[] {
-    const start = findStartPixel(data, w, h);
-    if (!start) return [];
-
+function traceBoundary(data: Uint8ClampedArray, w: number, h: number, startX: number, startY: number): Point[] {
     const points: Point[] = [];
-    let curr = { ...start };
-    let prevDir = 6; // came from bottom-left direction initially
+    let curr = { x: startX, y: startY };
+    let prevDir = 6; // start looking from bottom
 
-    const key = (p: Point) => `${p.x},${p.y}`;
-    const visited = new Set<string>();
-
-    for (let iter = 0; iter < w * h * 4; iter++) {
+    const maxIters = w * h;
+    
+    for (let iter = 0; iter < maxIters; iter++) {
         points.push({ ...curr });
-        visited.add(key(curr));
 
-        // Search clockwise from backtrack direction
         let found = false;
+        // Search clockwise starting from backtrack dir
         for (let d = 0; d < 8; d++) {
-            const dir = (prevDir + 6 + d) % 8; // start slightly counter-clockwise
+            const dir = (prevDir + 6 + d) % 8;
             const nx = curr.x + MOORE[dir].dx;
             const ny = curr.y + MOORE[dir].dy;
-            if (nx >= 0 && nx < w && ny >= 0 && ny < h && isSolid(data, nx, ny, w)) {
+            
+            if (isSolid(data, nx, ny, w)) {
                 prevDir = dir;
                 curr = { x: nx, y: ny };
                 found = true;
                 break;
             }
         }
+        
         if (!found) break;
-        if (curr.x === start.x && curr.y === start.y && points.length > 4) break;
+        // Check if closed loop
+        if (curr.x === startX && curr.y === startY && points.length > 3) break;
     }
+    
     return points;
+}
+
+function findLargestBoundary(data: Uint8ClampedArray, w: number, h: number): Point[] {
+    let bestBoundary: Point[] = [];
+    const visited = new Uint8Array(w * h);
+
+    // Scan for edge pixels
+    for (let y = 1; y < h - 1; y++) {
+        for (let x = 1; x < w - 1; x++) {
+            const idx = y * w + x;
+            if (visited[idx]) continue;
+
+            if (isSolid(data, x, y, w)) {
+                // Check if it's an edge (adjacent to background)
+                let isEdge = false;
+                for (let d = 0; d < 8; d += 2) { // just orthogonal check for speed
+                    if (!isSolid(data, x + MOORE[d].dx, y + MOORE[d].dy, w)) {
+                        isEdge = true;
+                        break;
+                    }
+                }
+
+                if (isEdge) {
+                    const boundary = traceBoundary(data, w, h, x, y);
+                    if (boundary.length > bestBoundary.length) {
+                        bestBoundary = boundary;
+                    }
+                    // Mark boundary points as visited
+                    for (const p of boundary) {
+                        visited[p.y * w + p.x] = 1;
+                    }
+                }
+            }
+        }
+    }
+    return bestBoundary;
 }
 
 // ─── Step 3: Ramer-Douglas-Peucker simplification ───────────────────────────
@@ -137,18 +167,21 @@ function rdp(points: Point[], epsilon: number): Point[] {
 // ─── Step 4: normalize + generate SVG path ──────────────────────────────────
 
 function normalize(points: Point[], size: number): Point[] {
+    if (!points.length) return [];
+    
     const xs = points.map(p => p.x);
     const ys = points.map(p => p.y);
     const minX = Math.min(...xs), maxX = Math.max(...xs);
     const minY = Math.min(...ys), maxY = Math.max(...ys);
+    
     const rangeX = maxX - minX || 1;
     const rangeY = maxY - minY || 1;
-    const scale = Math.min(size / rangeX, size / rangeY);
-    const offX = (size - rangeX * scale) / 2;
-    const offY = (size - rangeY * scale) / 2;
+    
+    const scale = size / Math.max(rangeX, rangeY);
+    
     return points.map(p => ({
-        x: Math.round(((p.x - minX) * scale + offX) * 10) / 10,
-        y: Math.round(((p.y - minY) * scale + offY) * 10) / 10,
+        x: Math.round(((p.x - minX) * scale) * 10) / 10,
+        y: Math.round(((p.y - minY) * scale) * 10) / 10,
     }));
 }
 
@@ -160,23 +193,25 @@ function toSVGPath(points: Point[]): string {
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
-/**
- * Vectorizes a silhouette image (base64 JPG/PNG) into an SVG path string.
- * Returns null if no solid region is found.
- */
 export async function vectorizeProfileImage(base64: string): Promise<string | null> {
-    const { data, w, h } = await loadImageToBinary(base64);
-    const raw = traceBoundary(data, w, h);
-    if (raw.length < 6) return null;
-    const simplified = rdp(raw, RDP_EPSILON);
-    const normalized = normalize(simplified, 100);
-    return toSVGPath(normalized);
+    try {
+        const { data, w, h } = await loadImageToBinary(base64);
+        const boundary = findLargestBoundary(data, w, h);
+        
+        if (boundary.length < 10) return null;
+        
+        const simplified = rdp(boundary, RDP_EPSILON);
+        const normalized = normalize(simplified, 100);
+        return toSVGPath(normalized);
+    } catch (err) {
+        console.error('Vectorization error:', err);
+        return null;
+    }
 }
 
-/** Wraps the path in a minimal SVG string for preview */
 export function svgPathToDataURL(path: string, size = 100): string {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
-  <path d="${path}" fill="#64748b" stroke="none"/>
+  <path d="${path}" fill="#94a3b8" stroke="#1e293b" stroke-width="0.5" stroke-linejoin="round"/>
 </svg>`;
-    return 'data:image/svg+xml;base64,' + btoa(svg);
+    return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
 }
