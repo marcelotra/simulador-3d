@@ -724,10 +724,30 @@ export function Configurator() {
                                                 </span>
                                             </div>
 
-                                            {/* Desenho técnico (FrameChevron) */}
-                                            <div className={`flex-shrink-0 w-16 flex items-center justify-center border-l ${isSelected ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-100 bg-zinc-50'}`}>
-                                                <FrameChevron frame={frame} size={52} />
-                                            </div>
+                                            {/* Ponta da moldura: elbowUrl > previewUrl > FrameChevron */}
+                                            {(() => {
+                                                const cornerImg = frame.elbowUrl || frame.previewUrl;
+                                                return cornerImg ? (
+                                                    <button
+                                                        onClick={e => { e.stopPropagation(); setEnlargedImage(cornerImg); }}
+                                                        title="Ver ponta da moldura"
+                                                        className={`flex-shrink-0 w-20 self-stretch overflow-hidden border-l relative group ${isSelected ? 'border-zinc-700' : 'border-zinc-100'}`}
+                                                    >
+                                                        <img
+                                                            src={cornerImg}
+                                                            alt={`Ponta ${frame.name}`}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
+                                                            <ZoomIn className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+                                                        </div>
+                                                    </button>
+                                                ) : (
+                                                    <div className={`flex-shrink-0 w-16 flex items-center justify-center border-l ${isSelected ? 'border-zinc-700 bg-zinc-800' : 'border-zinc-100 bg-zinc-50'}`}>
+                                                        <FrameChevron frame={frame} size={52} />
+                                                    </div>
+                                                );
+                                            })()}
                                         </button>
                                     </div>
                                 );
