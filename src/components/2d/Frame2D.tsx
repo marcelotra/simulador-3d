@@ -389,8 +389,8 @@ export function Frame2D() {
                                             height: `${(seg.h + paperMargin * 2 + rw * 2) * s}px`,
                                             backgroundColor: (passepartoutWidth > 0 && hasFrame) ? passepartoutColor : 'transparent',
                                             padding: `${((hasFrame ? passepartoutWidth : 0) + rw) * s}px`,
-                                            boxShadow: hasFrame ? 'inset 0px 4px 20px rgba(0,0,0,0.6)' : 'none',
-                                            transform: `translateZ(-${rabbetDepth * s}px)`,
+                                            boxShadow: 'none',
+                                            transform: `translateZ(0px)`,
                                         }}
                                     >
                                         <div
