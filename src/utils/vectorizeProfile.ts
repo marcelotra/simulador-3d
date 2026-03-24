@@ -167,7 +167,6 @@ function toPolygonString(points: Point[]): string {
 
 /** Converts a polygon string back to a standard SVG path for previewing */
 function polygonToSVGPath(poly: string): string {
-    const pts = poly.match(/[\d.]+%[\s,]+[\d.] samples/g) || poly.match(/[\d.]+%[\s]+[\d.]+/g) || poly.match(/[\d.]+% [\d.]+/g);
     // Let's use a simpler match that works with the project format
     const pairs = poly.replace('polygon(', '').replace(')', '').split(', ');
     const points = pairs.map(pair => {
