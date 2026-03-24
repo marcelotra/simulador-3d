@@ -141,9 +141,11 @@ export const FrameCornerGenerator = forwardRef<FrameCornerGeneratorRef, FrameCor
         const optimized = points.reduce((acc, p) => {
             if (acc.length === 0) return [p];
             const last = acc[acc.length - 1];
-            if (Math.abs(p.x - last.x) < 1.0 && acc.length > 1) return acc;
+            // Don't skip points if they are significantly different in X OR Y
+            const dist = Math.sqrt(Math.pow(p.x - last.x, 2) + Math.pow(p.y - last.y, 2));
+            if (dist < 0.5 && acc.length > 1) return acc;
             return [...acc, p];
-        }, [] as {x: number, y: number}[]).sort((a, b) => a.x - b.x);
+        }, [] as {x: number, y: number}[]); // NO SORT: Keep the perimeter order
         
         const woodColor = '#ae8d55'; 
         
@@ -185,6 +187,9 @@ export const FrameCornerGenerator = forwardRef<FrameCornerGeneratorRef, FrameCor
                             backgroundSize: `auto ${fw * s}px`,
                             backgroundPosition: `0 -${offsetFront * s}px`,
                             transform: `translateZ(-${sliceZ * s}px)`,
+                            // If sliceW is 0 (vertical), we still want a tiny height to avoid invisibility 
+                            // though slices are facing front, vertical segments are just transitions.
+                            borderTop: sliceW < 0.2 ? 'none' : 'none', 
                             transformStyle: 'preserve-3d',
                             clipPath: getClipPath(offsetFront, sliceW),
                             filter: `brightness(${1 - (pNext.y / 400)})`, 
@@ -248,20 +253,24 @@ export const FrameCornerGenerator = forwardRef<FrameCornerGeneratorRef, FrameCor
                     }} />
                     
                     {/* CORPO DA QUINA EM 3D */}
-                    {/* Topo Externo L stick */}
-                    <div style={{
-                        ...sideStyle(legLength, fd, 0.95),
-                        top: 0, left: 0,
-                        transformOrigin: 'top',
-                        transform: 'rotateX(-90deg)',
-                    }} />
-                    {/* Esquerda Externa L stick */}
-                    <div style={{
-                        ...sideStyle(fd, legLength, 0.85),
-                        top: 0, left: 0,
-                        transformOrigin: 'left',
-                        transform: 'rotateY(90deg)',
-                    }} />
+                    {/* Topo Externo L stick - Hidden if curved to show profile */}
+                    {profileType === 'reto' && (
+                        <div style={{
+                            ...sideStyle(legLength, fd, 0.95),
+                            top: 0, left: 0,
+                            transformOrigin: 'top',
+                            transform: 'rotateX(-90deg)',
+                        }} />
+                    )}
+                    {/* Esquerda Externa L stick - Hidden if curved to show profile */}
+                    {profileType === 'reto' && (
+                        <div style={{
+                            ...sideStyle(fd, legLength, 0.85),
+                            top: 0, left: 0,
+                            transformOrigin: 'left',
+                            transform: 'rotateY(90deg)',
+                        }} />
+                    )}
 
                     {/* Frentes (extrusões) */}
                     <ProfileSticks length={legLength} direction="to bottom" rotation={0} tx={0} ty={0} miterEnd="left" />
