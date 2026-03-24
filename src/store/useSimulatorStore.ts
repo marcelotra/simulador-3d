@@ -5,6 +5,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 export interface FrameData {
     id: string; // SKU or UUID
     name: string;
+    description?: string; // Short description shown to clients
     category: 'Preta' | 'Branca' | 'Dourada' | 'Prata' | 'Madeira';
     textureUrl: string; // Used for simulation
     previewUrl?: string; // Used for gallery display (optional)

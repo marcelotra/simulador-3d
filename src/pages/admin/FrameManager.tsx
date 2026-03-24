@@ -12,6 +12,7 @@ import { compressImage } from '../../utils/imageCompression';
 const frameSchema = z.object({
     name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
     sku: z.string().min(2, 'SKU/Código é obrigatório'),
+    description: z.string().optional(),
     category: z.enum(['Preta', 'Branca', 'Dourada', 'Prata', 'Madeira']),
     frameWidth: z.number().min(0.1, 'Largura deve ser maior que 0'),
     frameDepth: z.number().min(0.1, 'A espessura (profundidade) deve ser maior que 0'),
@@ -64,6 +65,7 @@ export default function FrameManager() {
         defaultValues: {
             name: '',
             sku: '',
+            description: '',
             category: 'Preta',
             frameWidth: 5.7,
             frameDepth: 2.8,
@@ -142,6 +144,7 @@ export default function FrameManager() {
         reset({
             name: frame.name,
             sku: frame.id,
+            description: frame.description || '',
             category: frame.category,
             frameWidth: frame.frameWidth,
             frameDepth: frame.frameDepth,
@@ -163,6 +166,7 @@ export default function FrameManager() {
         reset({
             name: '',
             sku: '',
+            description: '',
             category: 'Preta',
             frameWidth: 5.7,
             frameDepth: 2.8,
@@ -189,6 +193,7 @@ export default function FrameManager() {
         const frameData: FrameData = {
             id: data.sku,
             name: data.name,
+            description: data.description || undefined,
             category: data.category as any,
             textureUrl: textureImage,
             previewUrl: galleryImage || undefined,
@@ -282,7 +287,7 @@ export default function FrameManager() {
                                     <label className="block text-xs font-medium text-zinc-500 mb-1 uppercase tracking-wider">Nome da Moldura</label>
                                     <input
                                         {...register('name')}
-                                        placeholder="Ex: Clássica Ouro"
+                                        placeholder="Ex: Moldura Gesso Laca Preta"
                                         className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/5 transition-all"
                                     />
                                     {errors.name && <p className="text-red-500 text-[10px] mt-1">{errors.name.message}</p>}
@@ -292,10 +297,20 @@ export default function FrameManager() {
                                     <label className="block text-xs font-medium text-zinc-500 mb-1 uppercase tracking-wider">Código / SKU</label>
                                     <input
                                         {...register('sku')}
-                                        placeholder="Ex: P149"
+                                        placeholder="Ex: 00720060"
                                         className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/5 transition-all"
                                     />
                                     {errors.sku && <p className="text-red-500 text-[10px] mt-1">{errors.sku.message}</p>}
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-medium text-zinc-500 mb-1 uppercase tracking-wider">Descrição para o Cliente</label>
+                                    <textarea
+                                        {...register('description')}
+                                        placeholder="Ex: Gesso laqueado preto, acabamento brilhante, ideal para ambientes modernos."
+                                        rows={2}
+                                        className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/5 transition-all resize-none"
+                                    />
                                 </div>
 
                                 <div>
