@@ -27,11 +27,11 @@ export const SectionTitle = ({ title, tooltip, step }: { title: string, tooltip?
     return (
         <div className="group relative inline-block mb-3">
             <div className="flex items-center gap-1.5 cursor-help">
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 bg-zinc-100 px-1.5 py-0.5 rounded border-2 border-zinc-900">{displayTitle}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 bg-zinc-100 px-1.5 py-0.5 rounded border border-zinc-200">{displayTitle}</p>
                 <Info className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-600 transition-colors" />
             </div>
             
-            <div className="absolute left-0 top-full mt-2 w-64 p-2.5 bg-zinc-900 text-white text-[10px] whitespace-normal rounded-none shadow-xl opacity-0 -translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 transition-all z-50 font-medium tracking-wide leading-relaxed">
+            <div className="absolute left-0 top-full mt-2 w-64 p-2.5 bg-zinc-900 text-white text-[10px] whitespace-normal rounded-lg shadow-xl opacity-0 -translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 transition-all z-50 font-medium tracking-wide leading-relaxed">
                 {tooltip}
                 <div className="absolute -top-1 left-4 w-2 h-2 bg-zinc-900 rotate-45"></div>
             </div>
@@ -253,7 +253,7 @@ export function Configurator() {
                     <SectionTitle step={1} title="Sua Arte" tooltip="Carregue sua imagem aqui. O sistema analisará a qualidade para sugerir os melhores tamanhos de impressão." />
                     {store.userImage ? (
                         <div className="space-y-2">
-                            <div className="relative group rounded-none overflow-hidden border-2 border-zinc-900 bg-white flex items-center justify-center aspect-video">
+                            <div className="relative group rounded-xl overflow-hidden border border-zinc-200 bg-zinc-50 flex items-center justify-center aspect-video">
                                 <img src={store.userImage} alt="Arte" className="max-h-full max-w-full object-contain" />
                                 <button
                                     onClick={handleRemoveImage}
@@ -265,14 +265,14 @@ export function Configurator() {
                             </div>
                             <button
                                 onClick={() => setIsCropping(true)}
-                                className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-zinc-100 text-zinc-700 rounded-none text-[10px] font-bold hover:bg-zinc-200 transition-all uppercase tracking-tight"
+                                className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-zinc-100 text-zinc-700 rounded-xl text-[10px] font-bold hover:bg-zinc-200 transition-all uppercase tracking-tight"
                             >
                                 <Scissors className="w-3 h-3" />
                                 Ajustar Enquadramento
                             </button>
                         </div>
                     ) : (
-                        <label className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-zinc-900 rounded-none cursor-pointer hover:bg-white transition-colors group">
+                        <label className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-zinc-200 rounded-xl cursor-pointer hover:bg-zinc-50 transition-colors group">
                             <Upload className="w-4 h-4 mb-1 text-zinc-400 group-hover:text-zinc-600" />
                             <p className="text-[10px] text-zinc-400 font-medium"><span className="font-bold text-zinc-600">Clique</span> ou arraste a arte</p>
                             <input type="file" accept=".jpg,.jpeg,.png,.tif,.tiff" className="hidden" onChange={handleImageUpload} />
@@ -284,10 +284,10 @@ export function Configurator() {
                 <section className="py-4 px-1">
                     <button 
                         onClick={() => setActiveStep('dimensions')}
-                        className="w-full flex items-center justify-between p-4 bg-white border-2 border-zinc-900 rounded-none hover:border-zinc-900 transition-all text-left group"
+                        className="w-full flex items-center justify-between p-4 bg-white border border-zinc-100/80 hover:shadow-md rounded-3xl shadow-sm hover:border-zinc-900 transition-all text-left group"
                     >
                         <div className="flex items-center gap-4">
-                            <div className="bg-white p-2 rounded-none border-2 border-zinc-900 shadow-sm transition-transform group-hover:scale-105">
+                            <div className="bg-white p-2 rounded-xl border border-zinc-100 shadow-sm transition-transform group-hover:scale-105">
                                 <ZoomIn className="w-5 h-5 text-zinc-400" />
                             </div>
                             <div>
@@ -310,10 +310,10 @@ export function Configurator() {
                 <section className="py-4 px-1">
                     <button 
                         onClick={() => setActiveStep('frame')}
-                        className="w-full flex items-center justify-between p-4 bg-white border-2 border-zinc-900 rounded-none hover:border-zinc-900 transition-all text-left group"
+                        className="w-full flex items-center justify-between p-4 bg-white border border-zinc-100/80 hover:shadow-md rounded-3xl shadow-sm hover:border-zinc-900 transition-all text-left group"
                     >
                         <div className="flex items-center gap-4">
-                            <div className="bg-white p-1 rounded-none border-2 border-zinc-900 shadow-sm transition-transform group-hover:scale-105 overflow-hidden w-12 h-12 flex items-center justify-center">
+                            <div className="bg-white p-1 rounded-xl border border-zinc-100 shadow-sm transition-transform group-hover:scale-105 overflow-hidden w-12 h-12 flex items-center justify-center">
                                 {store.hasFrame && selectedFrame ? (
                                     selectedFrame.previewUrl ? (
                                         <img src={selectedFrame.previewUrl} alt={selectedFrame.name} className="w-full h-full object-cover" />
@@ -340,11 +340,11 @@ export function Configurator() {
                     <section className="py-4 px-1">
                         <button 
                             onClick={() => setActiveStep('passepartout')}
-                            className="w-full flex items-center justify-between p-4 bg-white border-2 border-zinc-900 rounded-none hover:border-zinc-900 transition-all text-left group"
+                            className="w-full flex items-center justify-between p-4 bg-white border border-zinc-100/80 hover:shadow-md rounded-3xl shadow-sm hover:border-zinc-900 transition-all text-left group"
                         >
                             <div className="flex items-center gap-4">
                                 <div 
-                                    className="w-12 h-12 rounded-none border-2 border-zinc-900 shadow-sm transition-transform group-hover:scale-105 flex items-center justify-center font-black text-[10px] text-zinc-400"
+                                    className="w-12 h-12 rounded-xl border border-zinc-100 shadow-sm transition-transform group-hover:scale-105 flex items-center justify-center font-black text-[10px] text-zinc-400"
                                     style={{ backgroundColor: store.passepartoutWidth > 0 ? store.passepartoutColor : '#f4f4f5' }}
                                 >
                                     {store.passepartoutWidth > 0 ? `${store.passepartoutWidth}cm` : 'ZERO'}
@@ -366,10 +366,10 @@ export function Configurator() {
                     <section className="py-4 px-1">
                         <button 
                             onClick={() => setActiveStep('glass')}
-                            className="w-full flex items-center justify-between p-4 bg-white border-2 border-zinc-900 rounded-none hover:border-zinc-900 transition-all text-left group"
+                            className="w-full flex items-center justify-between p-4 bg-white border border-zinc-100/80 hover:shadow-md rounded-3xl shadow-sm hover:border-zinc-900 transition-all text-left group"
                         >
                             <div className="flex items-center gap-4">
-                                <div className="bg-white p-2 rounded-none border-2 border-zinc-900 shadow-sm transition-transform group-hover:scale-105 w-12 h-12 flex items-center justify-center">
+                                <div className="bg-white p-2 rounded-xl border border-zinc-100 shadow-sm transition-transform group-hover:scale-105 w-12 h-12 flex items-center justify-center">
                                     <Info className="w-5 h-5 text-zinc-400" />
                                 </div>
                                 <div>
@@ -388,10 +388,10 @@ export function Configurator() {
                 <section className="py-4 px-1">
                     <button
                         onClick={() => setActiveStep('paper')}
-                        className="w-full flex items-center justify-between p-4 bg-white border-2 border-zinc-900 rounded-none hover:border-zinc-900 transition-all text-left group"
+                        className="w-full flex items-center justify-between p-4 bg-white border border-zinc-100/80 hover:shadow-md rounded-3xl shadow-sm hover:border-zinc-900 transition-all text-left group"
                     >
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-none overflow-hidden border-2 border-zinc-900 shadow-sm transition-transform group-hover:scale-105 bg-white flex items-center justify-center">
+                            <div className="w-12 h-12 rounded-xl overflow-hidden border border-zinc-100 shadow-sm transition-transform group-hover:scale-105 bg-white flex items-center justify-center">
                                 {selectedPaper?.imageUrl ? (
                                     <img src={selectedPaper.imageUrl} alt={selectedPaper.name} className="w-full h-full object-cover" />
                                 ) : (
@@ -410,7 +410,7 @@ export function Configurator() {
             </div>
 
             {/* ── Footer: Preço + Finalizar ── */}
-            <div className="border-t border-zinc-900 pt-4 pb-2 bg-white">
+            <div className="border-t border-zinc-100 pt-4 pb-2 bg-white">
                 <div className="flex items-end justify-between mb-3">
                     <div>
                         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 block">Valor Total</span>
@@ -427,7 +427,7 @@ export function Configurator() {
                 </div>
                 <button
                     onClick={handleFinalize}
-                    className="w-full bg-zinc-900 text-white font-black py-4 border-2 border-zinc-900 hover:bg-white hover:text-zinc-900 transition-all active:scale-[0.98] uppercase tracking-widest text-xs rounded-none"
+                    className="w-full bg-zinc-900 text-white font-black py-4 rounded-3xl shadow-xl hover:shadow-2xl hover:-translate-y-0.5 hover:bg-black transition-all active:scale-[0.98] uppercase tracking-widest text-xs"
                     title="Adicionar ao carrinho e finalizar"
                 >
                     Finalizar Pedido
@@ -444,14 +444,14 @@ export function Configurator() {
             >
                 <div className="space-y-8">
                     {!store.userImage ? (
-                        <div className="p-8 border-2 border-dashed border-zinc-900 rounded-none text-center bg-white/50">
+                        <div className="p-8 border-2 border-dashed border-zinc-100 rounded-3xl shadow-sm text-center bg-zinc-50/50">
                             <Upload className="w-8 h-8 text-zinc-300 mx-auto mb-3" />
                             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
                                 Carregue sua arte para ver<br />sugestões de tamanho ideais
                             </p>
                         </div>
                     ) : !store.imagePixels ? (
-                        <div className="p-8 border-2 border-dashed border-zinc-900 rounded-none text-center bg-white/50 animate-pulse">
+                        <div className="p-8 border-2 border-dashed border-zinc-100 rounded-3xl shadow-sm text-center bg-zinc-50/50 animate-pulse">
                             <ZoomIn className="w-8 h-8 text-zinc-300 mx-auto mb-3" />
                             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
                                 Analisando dimensões da imagem...
@@ -471,7 +471,7 @@ export function Configurator() {
                                             const h = store.imagePixels!.height;
                                             store.setImagePixels({ width: h, height: w });
                                         }}
-                                        className="text-[9px] font-black text-amber-500 hover:text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border-2 border-amber-100 uppercase tracking-widest transition-colors"
+                                        className="text-[9px] font-black text-amber-500 hover:text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100 uppercase tracking-widest transition-colors"
                                         title="Inverter orientação se estiver errada"
                                     >
                                         Inverter Eixos
@@ -518,8 +518,8 @@ export function Configurator() {
                                                     setLocalWidth(String(w));
                                                     setLocalHeight(String(h));
                                                 }}
-                                                className={`p-4 border-2 rounded-none text-center transition-all relative overflow-hidden ${
-                                                    isSelected ? 'border-zinc-900 bg-zinc-900 text-white shadow-lg' : 'border-zinc-900 bg-white hover:border-zinc-900'
+                                                className={`p-4 border-2 rounded-3xl shadow-sm text-center transition-all relative overflow-hidden ${
+                                                    isSelected ? 'border-zinc-900 bg-zinc-900 text-white shadow-lg' : 'border-zinc-100 bg-zinc-50 hover:border-zinc-200'
                                                 }`}
                                             >
                                                 <span className="text-sm font-black block">{w} × {h}</span>
@@ -550,7 +550,7 @@ export function Configurator() {
                                     value={localWidth}
                                     title="Largura da imagem"
                                     onChange={e => { setLocalWidth(e.target.value); setDimEdited(true); }}
-                                    className="w-full p-4 bg-white border-2 border-zinc-900 rounded-none font-black text-xl focus:border-zinc-900 outline-none transition-all"
+                                    className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-3xl shadow-sm font-black text-xl focus:border-zinc-900 outline-none transition-all"
                                 />
                             </div>
                             <div className="text-zinc-200 font-bold mt-6">×</div>
@@ -561,7 +561,7 @@ export function Configurator() {
                                     value={localHeight}
                                     title="Altura da imagem"
                                     onChange={e => { setLocalHeight(e.target.value); setDimEdited(true); }}
-                                    className="w-full p-4 bg-white border-2 border-zinc-900 rounded-none font-black text-xl focus:border-zinc-900 outline-none transition-all"
+                                    className="w-full p-4 bg-zinc-50 border-2 border-zinc-100 rounded-3xl shadow-sm font-black text-xl focus:border-zinc-900 outline-none transition-all"
                                 />
                             </div>
                         </div>
@@ -569,7 +569,7 @@ export function Configurator() {
                             <div className="flex flex-col gap-2 mt-4">
                                 <button 
                                     onClick={handleConfirmDimensions}
-                                    className="w-full bg-zinc-900 text-white font-black py-4 rounded-none shadow-xl active:scale-95 transition-all text-xs uppercase tracking-widest"
+                                    className="w-full bg-zinc-900 text-white font-black py-4 rounded-3xl shadow-sm shadow-xl active:scale-95 transition-all text-xs uppercase tracking-widest"
                                 >
                                     Aplicar Medidas (Pode Cortar)
                                 </button>
@@ -598,7 +598,7 @@ export function Configurator() {
                                             }
                                             setDimEdited(false);
                                         }}
-                                        className="w-full bg-zinc-100 text-zinc-900 font-black py-3 rounded-none text-[10px] uppercase tracking-widest hover:bg-zinc-200 transition-all font-bold"
+                                        className="w-full bg-zinc-100 text-zinc-900 font-black py-3 rounded-3xl shadow-sm text-[10px] uppercase tracking-widest hover:bg-zinc-200 transition-all font-bold"
                                     >
                                         Sincronizar Proporção (Sem Corte)
                                     </button>
@@ -616,7 +616,7 @@ export function Configurator() {
                     onClick={() => setEnlargedImage(null)}
                 >
                     <div className="relative max-w-2xl w-full" onClick={e => e.stopPropagation()}>
-                        <img src={enlargedImage} alt="Moldura ampliada" className="w-full rounded-none shadow-2xl object-contain max-h-[80vh]" />
+                        <img src={enlargedImage} alt="Moldura ampliada" className="w-full rounded-3xl shadow-sm shadow-2xl object-contain max-h-[80vh]" />
                         <button 
                             onClick={() => setEnlargedImage(null)}
                             className="absolute top-3 right-3 bg-white/20 hover:bg-white/40 backdrop-blur-sm p-2 rounded-full transition-all"
@@ -652,9 +652,9 @@ export function Configurator() {
                         {/* Opção Sem Moldura */}
                         <button
                             onClick={() => { store.setHasFrame(false); setActiveStep('none'); }}
-                            className={`w-full flex items-center p-4 rounded-none border-2 transition-all ${!store.hasFrame ? 'border-zinc-900 bg-zinc-900 text-white shadow-lg' : 'border-zinc-900 hover:border-zinc-300 bg-white'}`}
+                            className={`w-full flex items-center p-4 rounded-3xl shadow-sm border-2 transition-all ${!store.hasFrame ? 'border-zinc-900 bg-zinc-900 text-white shadow-lg' : 'border-zinc-100 hover:border-zinc-300 bg-white'}`}
                         >
-                            <div className="w-14 h-14 rounded-none bg-white/10 flex items-center justify-center border-2 border-white/20 flex-shrink-0">
+                            <div className="w-14 h-14 rounded-xl bg-white/10 flex items-center justify-center border border-white/20 flex-shrink-0">
                                 <X className="w-6 h-6" />
                             </div>
                             <div className="flex-1 text-left ml-4">
@@ -672,10 +672,10 @@ export function Configurator() {
                                     <div
                                         key={frame.id}
                                         onClick={() => { store.setFrameProfileId(frame.id); store.setHasFrame(true); }}
-                                        className={`w-full rounded-none border-2 transition-all overflow-hidden cursor-pointer flex ${
+                                        className={`w-full rounded-3xl shadow-sm border-2 transition-all overflow-hidden cursor-pointer flex ${
                                             isSelected
                                                 ? 'border-zinc-900 shadow-xl ring-2 ring-zinc-900/10'
-                                                : 'border-zinc-900 hover:border-zinc-400 hover:shadow-md'
+                                                : 'border-zinc-200 hover:border-zinc-400 hover:shadow-md'
                                         }`}
                                     >
                                         {/* Faixa lateral de seleção */}
@@ -692,7 +692,7 @@ export function Configurator() {
                                                     />
                                                     <button
                                                         onClick={e => { e.stopPropagation(); setEnlargedImage(photoToShow); }}
-                                                        className="absolute bottom-1.5 left-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-sm p-1.5 rounded-none transition-all"
+                                                        className="absolute bottom-1.5 left-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-sm p-1.5 rounded-lg transition-all"
                                                         title="Ampliar foto"
                                                     >
                                                         <ZoomIn className="w-3 h-3 text-white" />
@@ -768,7 +768,7 @@ export function Configurator() {
                                         key={c}
                                         title={`Cor ${c}`}
                                         onClick={() => store.setPassepartoutColor(c)}
-                                        className={`w-12 h-12 rounded-none border-4 transition-all ${store.passepartoutColor === c ? 'border-zinc-900 scale-110 shadow-lg' : 'border-zinc-50 shadow-sm hover:scale-105'}`}
+                                        className={`w-12 h-12 rounded-3xl shadow-sm border-4 transition-all ${store.passepartoutColor === c ? 'border-zinc-900 scale-110 shadow-lg' : 'border-zinc-50 shadow-sm hover:scale-105'}`}
                                         style={{ backgroundColor: c }}
                                     />
                                 ))}
@@ -776,7 +776,7 @@ export function Configurator() {
                         </div>
                     )}
 
-                    <div className="bg-amber-50 p-6 rounded-none border-2 border-amber-100">
+                    <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100">
                         <div className="flex items-center gap-3 mb-2">
                             <Info className="w-5 h-5 text-amber-500" />
                             <h5 className="text-[10px] font-black uppercase tracking-widest text-amber-700">Dica Fine Art</h5>
@@ -802,13 +802,13 @@ export function Configurator() {
                             <button
                                 key={g.id}
                                 onClick={() => { store.setGlassType(g.id as any); setActiveStep('none'); }}
-                                className={`w-full p-6 rounded-none border-2 text-left transition-all group ${
-                                    isSelected ? 'border-zinc-900 bg-zinc-900 text-white shadow-xl' : 'border-zinc-900 bg-white hover:border-zinc-900'
+                                className={`w-full p-6 rounded-3xl border-2 text-left transition-all group ${
+                                    isSelected ? 'border-zinc-900 bg-zinc-900 text-white shadow-xl' : 'border-zinc-100 bg-zinc-50 hover:border-zinc-200'
                                 }`}
                             >
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="font-black text-sm uppercase tracking-widest">{g.label}</span>
-                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'border-zinc-600 bg-zinc-800' : 'border-zinc-900 bg-white'}`}>
+                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'border-zinc-600 bg-zinc-800' : 'border-zinc-200 bg-white'}`}>
                                         {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
                                     </div>
                                 </div>
@@ -833,15 +833,15 @@ export function Configurator() {
                             <button
                                 key={paper.id}
                                 onClick={() => { store.setPrintType(paper.id); setActiveStep('none'); }}
-                                className={`w-full flex p-4 rounded-none border-2 transition-all ${
-                                    isSelected ? 'border-zinc-900 bg-zinc-900 text-white shadow-xl' : 'border-zinc-900 bg-white hover:border-zinc-900'
+                                className={`w-full flex p-4 rounded-3xl border-2 transition-all ${
+                                    isSelected ? 'border-zinc-900 bg-zinc-900 text-white shadow-xl' : 'border-zinc-100 bg-white hover:border-zinc-200'
                                 }`}
                             >
-                                <div className="w-20 h-20 rounded-none overflow-hidden bg-zinc-100 border-2 border-zinc-900 flex-shrink-0">
+                                <div className="w-20 h-20 rounded-3xl shadow-sm overflow-hidden bg-zinc-100 border border-zinc-100 flex-shrink-0">
                                     {paper.imageUrl ? (
                                         <img src={paper.imageUrl} alt={paper.name} className="w-full h-full object-cover" />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-white text-zinc-300">
+                                        <div className="w-full h-full flex items-center justify-center bg-zinc-50 text-zinc-300">
                                             <Info className="w-6 h-6" />
                                         </div>
                                     )}
@@ -887,7 +887,7 @@ export function Configurator() {
                     </button>
                     <img 
                         src={enlargedImage} 
-                        className="max-w-[90vw] max-h-[90vh] object-contain rounded-none shadow-2xl animate-in zoom-in-95 duration-200"
+                        className="max-w-[90vw] max-h-[90vh] object-contain rounded-xl shadow-2xl animate-in zoom-in-95 duration-200"
                         alt="Zoomed"
                         onClick={(e) => e.stopPropagation()}
                     />

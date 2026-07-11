@@ -40,12 +40,12 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, title, chil
         className={`relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col transition-transform duration-300 ease-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-900">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
           <button 
             onClick={onClose}
             className="flex items-center gap-2 text-zinc-500 hover:text-zinc-900 transition-colors group"
           >
-            <div className="bg-zinc-100 p-2 rounded-none group-hover:bg-zinc-200 transition-all">
+            <div className="bg-zinc-100 p-2 rounded-lg group-hover:bg-zinc-200 transition-all">
               <ChevronLeft className="w-5 h-5" />
             </div>
             <span className="text-xs font-black uppercase tracking-widest">Voltar</span>

@@ -32,8 +32,8 @@ export function SplitSettings({ step = 3 }: { step?: number }) {
                                 onClick={() => setSplitType(opt.id as SplitType)}
                                 className="flex-shrink-0 flex flex-col items-center gap-1.5 group"
                             >
-                                <div className={`w-14 h-14 rounded-none border-2 flex items-center justify-center transition-all ${
-                                    isSelected ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-900 bg-white hover:border-zinc-400 text-zinc-400'
+                                <div className={`w-14 h-14 rounded-xl border-2 flex items-center justify-center transition-all ${
+                                    isSelected ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 bg-zinc-50 hover:border-zinc-400 text-zinc-400'
                                 }`}>
                                     <Icon className="w-5 h-5" />
                                 </div>
@@ -57,8 +57,8 @@ export function SplitSettings({ step = 3 }: { step?: number }) {
                                     <button
                                         key={cols}
                                         onClick={() => setSplitColumns(cols)}
-                                        className={`flex-1 py-2 rounded-none border-2 font-bold text-xs transition-all ${
-                                            splitColumns === cols ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-900 text-zinc-400 hover:border-zinc-300'
+                                        className={`flex-1 py-2 rounded-lg border-2 font-bold text-xs transition-all ${
+                                            splitColumns === cols ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 text-zinc-400 hover:border-zinc-300'
                                         }`}
                                     >
                                         {cols}
@@ -77,8 +77,8 @@ export function SplitSettings({ step = 3 }: { step?: number }) {
                                     <button
                                         key={ratio}
                                         onClick={() => setSplitHeightRatio(ratio)}
-                                        className={`flex-1 py-2 rounded-none border-2 font-bold text-xs flex items-center justify-center gap-1 transition-all ${
-                                            splitHeightRatio === ratio ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-900 text-zinc-400 hover:border-zinc-300'
+                                        className={`flex-1 py-2 rounded-lg border-2 font-bold text-xs flex items-center justify-center gap-1 transition-all ${
+                                            splitHeightRatio === ratio ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 text-zinc-400 hover:border-zinc-300'
                                         }`}
                                     >
                                         <Percent className="w-3 h-3" />
@@ -99,7 +99,7 @@ export function SplitSettings({ step = 3 }: { step?: number }) {
                             type="range" min={1} max={5} step={0.5}
                             value={splitGap}
                             onChange={e => setSplitGap(Number(e.target.value))}
-                            className="w-full h-1.5 rounded-none appearance-none cursor-pointer accent-zinc-900 bg-zinc-200"
+                            className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-zinc-900 bg-zinc-200"
                         />
                     </div>
                 </div>
