@@ -10,7 +10,7 @@ const SPLIT_OPTIONS = [
     { id: 'grid', label: 'Corte Cruzado', icon: Grid },
 ] as const;
 
-export function SplitSettings() {
+export function SplitSettings({ step = 3 }: { step?: number }) {
     const { 
         splitType, setSplitType, 
         splitColumns, setSplitColumns,
@@ -21,7 +21,7 @@ export function SplitSettings() {
     return (
         <section className="py-4 space-y-4">
             <div>
-                <SectionTitle step={3} title="Defina as Divisões" tooltip="Escolha se a sua imagem será impressa em um quadro único ou dividida em várias partes (Díptico, Tríptico, etc). A Arte será cortada para caber no formato escolhido." />
+                <SectionTitle step={step} title="Defina as Divisões" tooltip="Escolha se a sua imagem será impressa em um quadro único ou dividida em várias partes (Díptico, Tríptico, etc). A Arte será cortada para caber no formato escolhido." />
                 <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1" style={{ scrollbarWidth: 'none' }}>
                     {SPLIT_OPTIONS.map((opt) => {
                         const isSelected = splitType === opt.id;

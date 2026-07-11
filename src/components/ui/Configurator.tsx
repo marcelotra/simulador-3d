@@ -291,7 +291,7 @@ export function Configurator() {
                                 <ZoomIn className="w-5 h-5 text-zinc-400" />
                             </div>
                             <div>
-                                <SectionTitle step={1} title="Tamanho da Imagem" />
+                                <SectionTitle step={2} title="Tamanho da Imagem" />
                                 {localWidth && localHeight ? (
                                     <span className="text-lg font-black text-zinc-900 tracking-tight">{localWidth} × {localHeight} cm</span>
                                 ) : (
@@ -304,7 +304,7 @@ export function Configurator() {
                 </section>
 
                 {/* ── Divisões (Quick Setting) ── */}
-                <SplitSettings />
+                <SplitSettings step={3} />
 
                 {/* ── PASSO 2: Modalidade/Moldura ── */}
                 <section className="py-4 px-1">
@@ -325,7 +325,7 @@ export function Configurator() {
                                 )}
                             </div>
                             <div>
-                                <SectionTitle step={2} title="Moldura" />
+                                <SectionTitle step={4} title="Moldura" />
                                 <span className="text-lg font-black text-zinc-900 tracking-tight">
                                     {store.hasFrame ? selectedFrame?.name ?? 'Selecionar' : 'Sem Moldura'}
                                 </span>
@@ -350,7 +350,7 @@ export function Configurator() {
                                     {store.passepartoutWidth > 0 ? `${store.passepartoutWidth}cm` : 'ZERO'}
                                 </div>
                                 <div>
-                                    <SectionTitle step={3} title="Passe-Partout" />
+                                    <SectionTitle step={5} title="Passe-Partout" />
                                     <span className="text-lg font-black text-zinc-900 tracking-tight">
                                         {store.passepartoutWidth > 0 ? `${store.passepartoutWidth} cm - Margem` : 'Sem Passe-Partout'}
                                     </span>
@@ -373,7 +373,7 @@ export function Configurator() {
                                     <Info className="w-5 h-5 text-zinc-400" />
                                 </div>
                                 <div>
-                                    <SectionTitle step={4} title="Proteção (Vidro)" />
+                                    <SectionTitle step={6} title="Proteção (Vidro)" />
                                     <span className="text-lg font-black text-zinc-900 tracking-tight">
                                         {GLASS_OPTIONS.find(g => g.id === store.glassType)?.label ?? 'Sem Vidro'}
                                     </span>
@@ -399,7 +399,7 @@ export function Configurator() {
                                 )}
                             </div>
                             <div>
-                                <SectionTitle step={store.hasFrame ? 5 : 2} title="Impressão" />
+                                <SectionTitle step={store.hasFrame ? 7 : 5} title="Impressão" />
                                 <span className="text-lg font-black text-zinc-900 tracking-tight">{selectedPaper?.name ?? 'Selecionar Papel'}</span>
                             </div>
                         </div>
